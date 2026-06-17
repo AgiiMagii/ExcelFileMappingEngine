@@ -1,0 +1,34 @@
+﻿<Window x:Class="FileMappingEngine.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FileMappingEngine"
+        mc:Ignorable="d"
+        Title="File Mapper" Height="500" Width="1000"
+        Loaded="Window_Loaded">
+    <Grid>
+        <DockPanel LastChildFill="True">
+            <StackPanel x:Name="mappingPanel" Width="80"/>
+            <ToolBar DockPanel.Dock="Top" Height="41" Padding="5">
+                <TextBox Name="txtFilePath" HorizontalAlignment="Left" TextWrapping="Wrap" Text="Choose File" VerticalAlignment="Top" Width="200"/>
+                <Button Name="chooseFileButton" Content="Open File" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,0,20,0" Click="chooseFileButton_Click"/>
+                <StackPanel Name="headerRowPanel" Orientation="Horizontal" VerticalAlignment="Top" IsEnabled="False">
+                    <Label Content="Header row"/>
+                    <ComboBox Name="cbHeaderRow" Margin="5,0,0,0" Width="40" SelectionChanged="cbHeaderRow_SelectionChanged"/>
+                </StackPanel>
+                <Button Name="saveFileButton" Content="Save File" VerticalAlignment="Top" Margin="20,0,20,0" Click="saveFileButton_Click"/>
+                <Button Name="saveMapping" Content="Save new mapping set" VerticalAlignment="Top" Margin="20,0,20,0" Click="SaveMappingSet_Click"/>
+
+            </ToolBar>
+            <Grid>
+                <DataGrid Name="dataGrid"
+                  AutoGenerateColumns="True"
+                  HeadersVisibility="Column"
+                  Margin="5"
+                  Sorting="dataGrid_Sorting"
+                  AutoGeneratingColumn="dataGrid_AutoGeneratingColumn"/>
+            </Grid>
+        </DockPanel>
+    </Grid>
+</Window>
