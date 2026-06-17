@@ -28,7 +28,6 @@ namespace FileMappingEngine
     /// </summary>
     public partial class MainWindow : Window
     {
-        ExcelService excelService = new ExcelService();
         AppManager appManager = new AppManager();
         FileTemplate template = new FileTemplate();
         Helper helper = new Helper();
@@ -79,24 +78,21 @@ namespace FileMappingEngine
 
         private void GenerateMappingSetButtons()
         {
-            //if (fileName == null) return;
-            string folderPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MappingSets");
-            if (!Directory.Exists(folderPath))
-                Directory.CreateDirectory(folderPath);
-            string[] jsonFiles = Directory.GetFiles(folderPath, "*.json");
             mappingPanel.Children.Clear();
-            foreach (string jsonFile in jsonFiles)
+
+            foreach (string mappingPath in appManager.GetExistingMappings())
             {
-                string mappingSetName = System.IO.Path.GetFileNameWithoutExtension(jsonFile);
-                Button mappingSetButton = new Button
+                Button button = new Button
                 {
-                    Content = mappingSetName,
-                    Tag = jsonFile,
+                    Content = System.IO.Path.GetFileNameWithoutExtension(mappingPath),
+                    Tag = mappingPath,
                     Margin = new Thickness(5),
                     Padding = new Thickness(10)
                 };
-                mappingSetButton.Click += MappingSetButton_Click;
-                mappingPanel.Children.Add(mappingSetButton);
+
+                button.Click += MappingSetButton_Click;
+
+                mappingPanel.Children.Add(button);
             }
         }
 
@@ -164,7 +160,8 @@ namespace FileMappingEngine
 
         private void saveFileButton_Click(object sender, RoutedEventArgs e)
         {
-            if (appManager.CurrentFile == null || appManager.CurrentFile.FileName == null) return;
+            if (appManager.CurrentFile == null)
+                return;
 
             SaveFileDialog sfd = new SaveFileDialog();
             sfd.Filter = "Excel Files|*.xlsx;*.xls";
@@ -172,20 +169,16 @@ namespace FileMappingEngine
 
             if (sfd.ShowDialog() == true)
             {
-                DataView? dataView = dataGrid.ItemsSource as DataView;
-                if (dataView == null) return;
+                if (!string.IsNullOrEmpty(sfd.FileName))
+                {
+                    appManager.SaveFile(sfd.FileName);
 
-                List<List<string>>? ignoredRows = excelService.IgnoredRows?
-                .Select(r => r.ToList())
-                .ToList();
-
-                DataTable dataToSave = dataView.ToTable();
-
-                for (int i = 0; i < template.HeaderRowIndex - 1; i++)
-                    dataToSave.Rows.RemoveAt(0);
-
-                excelService.SaveFile(sfd.FileName!, dataToSave, ignoredRows ?? new());
-                MessageBox.Show("Fails saglabāts!", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(
+                        "Fails saglabāts!",
+                        "Info",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
             }
         }
 
@@ -196,7 +189,7 @@ namespace FileMappingEngine
 
         private void dataGrid_Sorting(object sender, DataGridSortingEventArgs e)
         {
-            if (dt == null || dt.Columns.Count == 0) return;
+            if (appManager.CurrentData == null || appManager.CurrentData.Columns.Count == 0) return;
             if (template.OrderBy == null)
                 template.OrderBy = new List<(string ColumnName, ListSortDirection Direction)>();
 
