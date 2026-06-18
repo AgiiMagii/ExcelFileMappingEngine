@@ -1,6 +1,6 @@
 ﻿using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Bibliography;
 using DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Drawing.Diagrams;
 using FileMappingEngine.Lib;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Services;
@@ -242,124 +242,35 @@ namespace FileMappingEngine
 
         private void RemoveColumnMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuItem menuItem && menuItem.Tag is DataGridColumn column)
-            {
-                RemoveColumn(column);
-            }
-        }
-        private void RemoveColumn(DataGridColumn column)
-        {
+            if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
+                return;
+
             string? columnName = column.Header?.ToString();
-            // Remove column from DataGrid
-            dataGrid.Columns.Remove(column);
 
-            // Remove column from DataTable
-            columnName = column.Header?.ToString();
+            if (string.IsNullOrEmpty(columnName))
+                return;
 
-            if (!string.IsNullOrEmpty(columnName))
-            {
-                if (dt.Columns.Contains(columnName))
-                    dt.Columns.Remove(columnName);
-                if (!_isMapping)
-                {
-                    if (template.RemovedColumns == null)
-                        template.RemovedColumns = new();
-                    template.RemovedColumns.Add(columnName);
-                    steps.Add(new ActionStep
-                    {
-                        ActionType = "DeleteColumn",
-                        ColumnId = columnName,
-                        Order = steps.Count + 1
-                    });
-                }
-            }
+            appManager.RemoveColumn(columnName);
+            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
         }
+        
 
         private void AddColumnMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuItem menuItem && menuItem.Tag is DataGridColumn column)
-            {
-                AddColumn(menuItem, column);
-            }
-        }
-
-        private void ExecuteAddColumn(string columnName, string anchorId, string direction)
-        {
-            int index = 0;
-
-            if (!string.IsNullOrEmpty(anchorId))
-            {
-                var anchorColumn = dataGrid.Columns
-                    .FirstOrDefault(c => c.Header?.ToString() == anchorId);
-
-                if (anchorColumn != null)
-                    index = dataGrid.Columns.IndexOf(anchorColumn);
-
-                if (direction == "Right")
-                    index += 1;
-            }
-            else
-            {
-                index = dataGrid.Columns.Count;
-            }
-
-            var newColumn = new DataColumn(columnName, typeof(string));
-
-            dt.Columns.Add(newColumn);
-            newColumn.SetOrdinal(index);
-
-            helper.ReloadDataGrid(dataGrid, dt);
-        }
-        private void AddColumn(MenuItem menuItem, DataGridColumn column)
-        {
-            string newColumnName = GenerateColumnName();
-
-            string anchorId = column.Header?.ToString();
+            if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
+                return;
+            
+            string? anchorId = column.Header?.ToString();
+            
             string direction = (string)menuItem.Header == "Add Column / Left"
                 ? "Left"
                 : "Right";
-
-            // 1. RECORD mapping step
-            steps.Add(new ActionStep
-            {
-                ActionType = "AddColumn",
-                ColumnId = newColumnName,
-                Order = steps.Count + 1,
-                Parameters = new Dictionary<string, object>
-                {
-                    ["AnchorColumnId"] = anchorId,
-                    ["Direction"] = direction
-                }
-            });
-
-            // 2. EXECUTE same logic
-            ExecuteAddColumn(newColumnName, anchorId, direction);
+            if (string.IsNullOrEmpty(anchorId))
+                return;
+            appManager.AddColumn(direction, anchorId);
+            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
         }
-        private string GenerateColumnName()
-        {
-            string baseName = "NewColumn";
-            string name;
-
-            int suffix = dt.Columns.Count + 1;
-
-            do
-            {
-                name = $"{baseName}{suffix}";
-                suffix++;
-            }
-            while (dt.Columns.Contains(name));
-
-            return name;
-        }
-        private void AddColumn(string columnName, int index)
-        {
-            var newColumn = new DataColumn(columnName, typeof(string));
-
-            dt.Columns.Add(newColumn);
-            newColumn.SetOrdinal(index);
-
-            helper.ReloadDataGrid(dataGrid, dt);
-        }
+        
         private void RenameColumnMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
@@ -408,17 +319,7 @@ namespace FileMappingEngine
         {
 
         }
-
-        private void SaveMappingSet(string fileName)
-        {
-            MappingSet mapping = new MappingSet
-            {
-                Name = fileName,
-                HeaderRow = cbHeaderRow.Text != "" ? int.Parse(cbHeaderRow.Text) : 1,
-                Steps = steps
-            };
-            JsonService.CreateJson(mapping, fileName);
-        }
+        
         public void SaveMappingSetToJson()
         {
             string folderPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MappingSets");
@@ -435,11 +336,9 @@ namespace FileMappingEngine
                 FileName = "NewMappingSet.json"
             };
 
-            bool? result = sfd.ShowDialog();
-
-            if (result == true)
+            if (sfd.ShowDialog() == true)
             {
-                SaveMappingSet(sfd.FileName);
+                appManager.SaveMappingSet(sfd.FileName);
             }
         }
         private void ApplyMappingSet(MappingSet mappingSet)
@@ -456,7 +355,7 @@ namespace FileMappingEngine
                         case "DeleteColumn":
                             DataGridColumn? colToRemove = dataGrid.Columns.FirstOrDefault(c => c.Header?.ToString() == step.ColumnId);
                             if (colToRemove != null)
-                                RemoveColumn(colToRemove);
+                                appManager.RemoveColumn(step.ColumnId);
                             break;
                         case "AddColumn":
                             {
@@ -483,7 +382,7 @@ namespace FileMappingEngine
                                     index = dataGrid.Columns.Count;
                                 }
 
-                                AddColumn(newColumnName, index);
+                                appManager.AddColumn(direction, anchorId);
 
                                 break;
                             }

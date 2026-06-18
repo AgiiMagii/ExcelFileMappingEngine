@@ -1,4 +1,5 @@
-﻿using FileMappingEngine.Lib.Models;
+﻿using DocumentFormat.OpenXml.InkML;
+using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Services;
 using System;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using System.Data;
 using System.IO;
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Windows.Controls;
 
 namespace FileMappingEngine.Lib
 {
@@ -84,6 +86,67 @@ namespace FileMappingEngine.Lib
                 filePath,
                 dataToSave,
                 ignoredRows);
+        }
+        public void RemoveColumn(string columnName)
+        {
+            mappingEngine.RemoveColumn(CurrentData, columnName);
+        }
+
+        public void AddColumn(string direction, string anchorId)
+        {
+            string newColumnName = GenerateColumnName();
+
+            int index = CalculateColumnIndex(anchorId, direction);
+
+            CurrentData.Columns.Add(newColumnName);
+            CurrentData.Columns[newColumnName].SetOrdinal(index);
+
+            mappingEngine.AddNewColumn(
+                newColumnName,
+                anchorId,
+                direction);
+        }
+
+        private string GenerateColumnName()
+        {
+            string baseName = "NewColumn";
+            string name;
+
+            int suffix = CurrentData.Columns.Count + 1;
+
+            do
+            {
+                name = $"{baseName}{suffix}";
+                suffix++;
+            }
+            while (CurrentData.Columns.Contains(name));
+
+            return name;
+        }
+
+        private int CalculateColumnIndex(string anchorId, string direction)
+        {
+            int anchorIndex = CurrentData.Columns.IndexOf(anchorId);
+            if (anchorIndex == -1)
+                throw new ArgumentException($"Anchor column '{anchorId}' does not exist.");
+            return direction.ToLower() switch
+            {
+                "left" => anchorIndex,
+                "right" => anchorIndex + 1,
+                _ => throw new ArgumentException("Direction must be 'left' or 'right'.")
+            };
+        }
+
+        public void SaveMappingSet(string filePath)
+        {
+            if (CurrentFile == null)
+                throw new InvalidOperationException("No file loaded.");
+            string fileName = Path.GetFileNameWithoutExtension(filePath);
+            var mapping = mappingEngine.GenerateMappingSet(
+                fileName,
+                CurrentFile.HeaderRowIndex);
+
+            JsonService.CreateJson(mapping, filePath);
         }
     }
 }
