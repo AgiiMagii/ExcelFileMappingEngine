@@ -1,4 +1,6 @@
-﻿using DocumentFormat.OpenXml.InkML;
+﻿using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.Drawing.Diagrams;
+using DocumentFormat.OpenXml.InkML;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Services;
 using System;
@@ -6,6 +8,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Windows.Controls;
 
@@ -20,9 +23,11 @@ namespace FileMappingEngine.Lib
         // Esošo mappingu pogas jārāda tikai tās, kuras piemērotas konkrētam failam
         // - izveidot pārbaudi, kas nosaka, kuri mappingi atbilst faila struktūrai.
         private readonly ExcelService excelService = new ExcelService();
-        private readonly MappingEngine mappingEngine = new MappingEngine();
+        private readonly MappingService mappingEngine = new MappingService();
         public FileState? CurrentFile { get; private set; }
         public DataTable CurrentData => CurrentFile?.CurrentData ?? throw new InvalidOperationException("No file loaded.");
+
+        public bool IsApplyingMapping { get; private set; }
 
         public DataTable OpenFile(string filePath)
         {
@@ -37,6 +42,7 @@ namespace FileMappingEngine.Lib
 
             return CurrentData;
         }
+
         public void UpdateHeaderRow(int newHeaderRow)
         {
             if (CurrentFile == null)
@@ -46,10 +52,12 @@ namespace FileMappingEngine.Lib
             CurrentFile.HeaderRowIndex = newHeaderRow;
             CurrentFile.CurrentData = excelService.BuildDataTable(CurrentFile.RawData, CurrentFile.HeaderRowIndex);
         }
+
         public void CloseCurrentFile()
         {
             CurrentFile = null;
         }
+
         public string[] GetExistingMappings()
         {
             try
@@ -62,6 +70,7 @@ namespace FileMappingEngine.Lib
                 return Array.Empty<string>();
             }
         }
+
         public void SaveFile(string filePath)
         {
             if (CurrentFile == null)
@@ -87,9 +96,16 @@ namespace FileMappingEngine.Lib
                 dataToSave,
                 ignoredRows);
         }
+
         public void RemoveColumn(string columnName)
         {
-            mappingEngine.RemoveColumn(CurrentData, columnName);
+            if (CurrentData.Columns.Contains(columnName))
+                CurrentData.Columns.Remove(columnName);
+            if (!IsApplyingMapping)
+            {
+                mappingEngine.RemoveColumnStep(columnName);
+            }
+            
         }
 
         public void AddColumn(string direction, string anchorId)
@@ -99,12 +115,15 @@ namespace FileMappingEngine.Lib
             int index = CalculateColumnIndex(anchorId, direction);
 
             CurrentData.Columns.Add(newColumnName);
-            CurrentData.Columns[newColumnName].SetOrdinal(index);
+            CurrentData.Columns[newColumnName]?.SetOrdinal(index);
 
-            mappingEngine.AddNewColumn(
+            if (!IsApplyingMapping)
+            {
+                mappingEngine.AddNewColumnStep(
                 newColumnName,
                 anchorId,
                 direction);
+            }
         }
 
         private string GenerateColumnName()
@@ -147,6 +166,79 @@ namespace FileMappingEngine.Lib
                 CurrentFile.HeaderRowIndex);
 
             JsonService.CreateJson(mapping, filePath);
+        }
+
+        public bool IsColumnNameTaken(string columnName)
+        {
+            return CurrentData.Columns.Contains(columnName);
+        }
+
+        public void RenameColumn(string oldName, string newName)
+        {
+            if (!CurrentData.Columns.Contains(oldName))
+                throw new ArgumentException($"Column '{oldName}' does not exist.");
+            if (CurrentData.Columns.Contains(newName))
+                throw new ArgumentException($"Column name '{newName}' is already taken.");
+
+
+            CurrentData.Columns[oldName]?.ColumnName = newName;
+            if (!IsApplyingMapping)
+            {
+                mappingEngine.RenameColumnStep(oldName, newName);
+            }
+            
+        }
+
+        public void ApplyMappingSet(string filePath)
+        {
+            if (CurrentFile == null)
+                throw new InvalidOperationException("No file loaded.");
+            if (CurrentFile.CurrentData == null)
+                throw new InvalidOperationException("Current data not available.");
+
+            string json = File.ReadAllText(filePath);
+            var mapping = JsonSerializer.Deserialize<MappingSet>(json);
+
+            if (mapping == null)
+                throw new InvalidOperationException("Failed to deserialize mapping set.");
+            try
+            {
+                IsApplyingMapping = true;
+
+                CurrentFile.HeaderRowIndex = mapping.HeaderRow;
+
+                UpdateHeaderRow(CurrentFile.HeaderRowIndex);
+
+                ExecuteMappingSteps(mapping);
+
+            }
+            finally
+            {
+                IsApplyingMapping = false;
+            }
+        }
+        private void ExecuteMappingSteps(MappingSet mapping)
+        {
+            foreach (var step in mapping.Steps.OrderBy(s => s.Order))
+            {
+                switch (step.ActionType)
+                {
+                    case "DeleteColumn":
+                        RemoveColumn(step.ColumnId);
+                        break;
+                    case "AddColumn":
+                        string anchorId = step.Parameters["AnchorColumnId"].ToString() ?? throw new InvalidOperationException("Anchor column ID missing.");
+                        string direction = step.Parameters["Direction"].ToString() ?? throw new InvalidOperationException("Direction missing.");
+                        AddColumn(direction, anchorId);
+                        break;
+                    case "RenameColumn":
+                        string newName = step.Parameters["NewName"].ToString() ?? throw new InvalidOperationException("New name missing.");
+                        RenameColumn(step.ColumnId, newName);
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Unknown action type: {step.ActionType}");
+                }
+            }
         }
     }
 }

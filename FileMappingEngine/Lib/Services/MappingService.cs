@@ -8,11 +8,12 @@ using System.IO;
 using System.Text;
 using System.Windows.Controls;
 
-namespace FileMappingEngine.Lib
+namespace FileMappingEngine.Lib.Services
 {
-    public class MappingEngine
+    public class MappingService
     {
         private readonly List<ActionStep> steps = new List<ActionStep>();
+
         public string[] GetJsonFiles()
         {
             string folderPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MappingSets");
@@ -21,11 +22,9 @@ namespace FileMappingEngine.Lib
             string[] jsonFiles = Directory.GetFiles(folderPath, "*.json");
             return jsonFiles;
         }
-        public void RemoveColumn(System.Data.DataTable data, string columnName)
-        {
-            if (data.Columns.Contains(columnName))
-                data.Columns.Remove(columnName);
 
+        public void RemoveColumnStep(string columnName)
+        {
             steps.Add(new ActionStep
             {
                 ActionType = "DeleteColumn",
@@ -33,7 +32,7 @@ namespace FileMappingEngine.Lib
                 Order = steps.Count + 1
             });
         }
-        public void AddNewColumn(string newColumnName, string anchorId, string direction)
+        public void AddNewColumnStep(string newColumnName, string anchorId, string direction)
         {
             steps.Add(new ActionStep
             {
@@ -44,6 +43,19 @@ namespace FileMappingEngine.Lib
                 {
                     ["AnchorColumnId"] = anchorId,
                     ["Direction"] = direction
+                }
+            });
+        }
+        public void RenameColumnStep(string oldName, string newName)
+        {
+            steps.Add(new ActionStep
+            {
+                ActionType = "RenameColumn",
+                ColumnId = oldName,
+                Order = steps.Count + 1,
+                Parameters = new Dictionary<string, object>
+                {
+                    ["NewName"] = newName
                 }
             });
         }
@@ -58,5 +70,6 @@ namespace FileMappingEngine.Lib
             };
             return mapping;
         }
+        
     }
 }

@@ -11,6 +11,6 @@ namespace FileMappingEngine.Lib.Models
         public string? Direction { get; set; }
         public Type? DataType { get; set; }
         public string? DefaultValue { get; set; }
-        public string? Formula { get; set; }
+        public string? Formula { get; set; } = string.Empty;
     }
 }

@@ -31,10 +31,7 @@ namespace FileMappingEngine
         AppManager appManager = new AppManager();
         FileTemplate template = new FileTemplate();
         Helper helper = new Helper();
-        private bool _isMapping = false;
         private bool _isFirstLoad = false;
-        private DataTable dt = new DataTable();
-        private List<ActionStep> steps = new List<ActionStep>();
         public MainWindow()
         {
             InitializeComponent();
@@ -100,21 +97,8 @@ namespace FileMappingEngine
         {
             if (sender is not Button button || button.Tag is not string filePath)
                 return;
-
-            MappingSet? mappingSet = LoadMappingSet(filePath);
-
-            if (mappingSet == null)
-            {
-                MessageBox.Show("Neizdevās ielādēt MappingSet.");
-                return;
-            }
-
-            ApplyMappingSet(mappingSet);
-        }
-        private MappingSet? LoadMappingSet(string filePath)
-        {
-            string json = System.IO.File.ReadAllText(filePath);
-            return JsonSerializer.Deserialize<MappingSet>(json);
+            appManager.ApplyMappingSet(filePath);
+            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
         }
 
         private void chooseFileButton_Click(object sender, RoutedEventArgs e)
@@ -214,11 +198,12 @@ namespace FileMappingEngine
             removeItem.Click += RemoveColumnMenuItem_Click;
             menu.Items.Add(removeItem);
 
-            // Other options
+            // Add Column right
             MenuItem addItemRight = new MenuItem { Header = "Add Column / Right", Tag = column };
             addItemRight.Click += AddColumnMenuItem_Click;
             menu.Items.Add(addItemRight);
 
+            // Add Column left
             MenuItem addItemLeft = new MenuItem { Header = "Add Column / Left", Tag = column };
             addItemLeft.Click += AddColumnMenuItem_Click;
             menu.Items.Add(addItemLeft);
@@ -227,10 +212,12 @@ namespace FileMappingEngine
             //hideItem.Click += HideColumnMenuItem_Click;
             //menu.Items.Add(hideItem);
 
+            // Rename Column
             MenuItem renameCol = new MenuItem { Header = "Rename Column", Tag = column };
             renameCol.Click += RenameColumnMenuItem_Click;
             menu.Items.Add(renameCol);
 
+            // Set Data Type
             MenuItem setDataType = new MenuItem { Header = "Set Data Type", Tag = column };
             setDataType.Click += SetDataTypeMenuItem_Click;
             menu.Items.Add(setDataType);
@@ -253,7 +240,6 @@ namespace FileMappingEngine
             appManager.RemoveColumn(columnName);
             helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
         }
-        
 
         private void AddColumnMenuItem_Click(object sender, RoutedEventArgs e)
         {
@@ -276,10 +262,11 @@ namespace FileMappingEngine
             if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
                 return;
 
-            var oldColumnName = column.Header?.ToString();
-            if (string.IsNullOrWhiteSpace(oldColumnName)) return;
+            string? oldColumnName = column.Header?.ToString();
 
-            // Lietotāja ievads
+            if (string.IsNullOrWhiteSpace(oldColumnName))
+                return;
+
             string newColumnName;
             do
             {
@@ -289,7 +276,7 @@ namespace FileMappingEngine
                 if (string.IsNullOrWhiteSpace(newColumnName))
                     return; // Cancel vai tukšs → atstāj logu
 
-                if (dt.Columns.Contains(newColumnName))
+                if (appManager.IsColumnNameTaken(newColumnName))
                 {
                     MessageBox.Show($"Column '{newColumnName}' already exists! Please enter another name.");
                     // Loop turpina, InputBox parādīsies atkal
@@ -301,18 +288,8 @@ namespace FileMappingEngine
 
             } while (true);
 
-            // Update DataTable
-            var dataColumn = dt.Columns[oldColumnName];
-            if (dataColumn != null)
-                dataColumn.ColumnName = newColumnName;
-
-            // Update DataGridColumn Header tieši, nav jāreload viss grid
-            column.Header = newColumnName;
-
-            // Update template mapping
-            template.ColumnMappings ??= new();
-            template.ColumnMappings[oldColumnName] = newColumnName;
-            helper.ReloadDataGrid(dataGrid, dt);
+            appManager.RenameColumn(oldColumnName, newColumnName);
+            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
         }
 
         private void SetDataTypeMenuItem_Click(object sender, RoutedEventArgs e)
@@ -341,65 +318,6 @@ namespace FileMappingEngine
                 appManager.SaveMappingSet(sfd.FileName);
             }
         }
-        private void ApplyMappingSet(MappingSet mappingSet)
-        {
-            try
-            {
-                _isMapping = true;
-
-                cbHeaderRow.SelectedItem = mappingSet.HeaderRow;
-                foreach (ActionStep step in mappingSet.Steps.OrderBy(s => s.Order))
-                {
-                    switch (step.ActionType)
-                    {
-                        case "DeleteColumn":
-                            DataGridColumn? colToRemove = dataGrid.Columns.FirstOrDefault(c => c.Header?.ToString() == step.ColumnId);
-                            if (colToRemove != null)
-                                appManager.RemoveColumn(step.ColumnId);
-                            break;
-                        case "AddColumn":
-                            {
-                                string newColumnName = step.ColumnId!;
-
-                                string? anchorId = step.Parameters?["AnchorColumnId"]?.ToString();
-                                string? direction = step.Parameters?["Direction"]?.ToString();
-
-                                int index = 0;
-
-                                if (!string.IsNullOrEmpty(anchorId))
-                                {
-                                    var anchorColumn = dataGrid.Columns
-                                        .FirstOrDefault(c => c.Header?.ToString() == anchorId);
-
-                                    if (anchorColumn != null)
-                                        index = dataGrid.Columns.IndexOf(anchorColumn);
-
-                                    if (direction == "Right")
-                                        index += 1;
-                                }
-                                else
-                                {
-                                    index = dataGrid.Columns.Count;
-                                }
-
-                                appManager.AddColumn(direction, anchorId);
-
-                                break;
-                            }
-                        case "RenameColumn":
-                            // Šeit varētu izsaukt RenameColumn loģiku, ja saglabātu nepieciešamos parametrus
-                            break;
-                            // Pievieno citas darbības pēc nepieciešamības
-                    }
-                }
-                //dt = _engine.Execute(dt, mappingSet);
-
-                helper.ReloadDataGrid(dataGrid, dt);
-            }
-            finally
-            {
-                _isMapping = false;
-            }
-        }
+        
     }
 }
