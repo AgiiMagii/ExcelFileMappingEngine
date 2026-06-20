@@ -1,25 +1,10 @@
-﻿using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Bibliography;
-using DocumentFormat.OpenXml.Drawing;
-using FileMappingEngine.Lib;
-using FileMappingEngine.Lib.Models;
-using FileMappingEngine.Lib.Services;
+﻿using FileMappingEngine.Lib;
 using Microsoft.Win32;
 using System.ComponentModel;
-using System.Data;
 using System.IO;
-using System.Text;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace FileMappingEngine
 {
@@ -29,9 +14,9 @@ namespace FileMappingEngine
     public partial class MainWindow : Window
     {
         AppManager appManager = new AppManager();
-        FileTemplate template = new FileTemplate();
         Helper helper = new Helper();
         private bool _isFirstLoad = false;
+        private string? _oldColumnName;
         public MainWindow()
         {
             InitializeComponent();
@@ -174,9 +159,6 @@ namespace FileMappingEngine
         private void dataGrid_Sorting(object sender, DataGridSortingEventArgs e)
         {
             if (appManager.CurrentData == null || appManager.CurrentData.Columns.Count == 0) return;
-            if (template.OrderBy == null)
-                template.OrderBy = new List<(string ColumnName, ListSortDirection Direction)>();
-
         }
 
         private void dataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
@@ -222,6 +204,10 @@ namespace FileMappingEngine
             setDataType.Click += SetDataTypeMenuItem_Click;
             menu.Items.Add(setDataType);
 
+            MenuItem writeFormula = new MenuItem { Header = "Formula", Tag = column };
+            writeFormula.Click += WriteFormulaMenuItem_Click;
+            menu.Items.Add(writeFormula);
+
             menu.Items.Add(new MenuItem { Header = "-" });
 
             return menu;
@@ -259,44 +245,115 @@ namespace FileMappingEngine
         
         private void RenameColumnMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
+            //if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
+            //    return;
+
+            //string? oldColumnName = column.Header?.ToString();
+
+            //if (string.IsNullOrWhiteSpace(oldColumnName))
+            //    return;
+
+            //string newColumnName;
+            //do
+            //{
+            //    newColumnName = Microsoft.VisualBasic.Interaction.InputBox(
+            //        "Enter new column name:", "Rename Column", oldColumnName);
+
+            //    if (string.IsNullOrWhiteSpace(newColumnName))
+            //        return; // Cancel vai tukšs → atstāj logu
+
+            //    if (appManager.IsColumnNameTaken(newColumnName))
+            //    {
+            //        MessageBox.Show($"Column '{newColumnName}' already exists! Please enter another name.");
+            //        // Loop turpina, InputBox parādīsies atkal
+            //    }
+            //    else
+            //    {
+            //        break; // derīgs nosaukums
+            //    }
+
+            //} while (true);
+
+            //appManager.RenameColumn(oldColumnName, newColumnName);
+            //helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+
+
+            if (sender is not MenuItem menuItem ||
+        menuItem.Tag is not DataGridColumn column)
                 return;
 
-            string? oldColumnName = column.Header?.ToString();
+            _oldColumnName = column.Header?.ToString();
 
-            if (string.IsNullOrWhiteSpace(oldColumnName))
+            if (string.IsNullOrWhiteSpace(_oldColumnName))
                 return;
 
-            string newColumnName;
-            do
+            txtCurrentColumnName.Text = _oldColumnName;
+            txtNewColumnName.Text = _oldColumnName;
+
+            txtRenameValidation.Visibility = Visibility.Collapsed;
+
+            RenameColumnOverlay.Visibility = Visibility.Visible;
+        }
+        private void SaveRenameColumn_Click(object sender, RoutedEventArgs e)
+        {
+            string newName = txtNewColumnName.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(newName))
             {
-                newColumnName = Microsoft.VisualBasic.Interaction.InputBox(
-                    "Enter new column name:", "Rename Column", oldColumnName);
+                txtRenameValidation.Text = "Column name cannot be empty.";
+                txtRenameValidation.Visibility = Visibility.Visible;
+                return;
+            }
 
-                if (string.IsNullOrWhiteSpace(newColumnName))
-                    return; // Cancel vai tukšs → atstāj logu
+            if (appManager.IsColumnNameTaken(newName))
+            {
+                txtRenameValidation.Text = $"Column '{newName}' already exists.";
+                txtRenameValidation.Visibility = Visibility.Visible;
+                return;
+            }
 
-                if (appManager.IsColumnNameTaken(newColumnName))
-                {
-                    MessageBox.Show($"Column '{newColumnName}' already exists! Please enter another name.");
-                    // Loop turpina, InputBox parādīsies atkal
-                }
-                else
-                {
-                    break; // derīgs nosaukums
-                }
+            appManager.RenameColumn(_oldColumnName!, newName);
 
-            } while (true);
+            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
 
-            appManager.RenameColumn(oldColumnName, newColumnName);
+            RenameColumnOverlay.Visibility = Visibility.Collapsed;
+        }
+        private void CancelRenameColumn_Click(object sender, RoutedEventArgs e)
+        {
+            RenameColumnOverlay.Visibility = Visibility.Collapsed;
+        }
+        private void ResetTable_Click(object sender, RoutedEventArgs e)
+        {
+            if (appManager.CurrentFile == null)
+                return;
+            appManager.ResetTable();
             helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
         }
-
         private void SetDataTypeMenuItem_Click(object sender, RoutedEventArgs e)
         {
 
         }
-        
+
+        private void WriteFormulaMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
+                return;
+            string? columnName = column.Header?.ToString(); // kolonna, kurai tiks pielietota formula
+            if (string.IsNullOrWhiteSpace(columnName))
+                return;
+            // izveidot controller vai window, kurā ir combo box vai cts vizuāls elements,
+            // kur lietotājs var izvēlēties dataGrid esošo kolonnu nosaukumus, kurus ievietot firmulā.
+            // Piemēram, "Price" * "Total_amount"
+            // Tajā pašā window ir textbox, kur tiek ievadīta šī vai jebkura cita formula.
+            // Window piedāvā dažādas opcijas, piemēram, saglabāt formulu vai atcelt.
+            // Ja lietotājs izvēlas saglabāt, tad formula tiek saglabāta konkrētajai kolonnai.
+
+            //if (string.IsNullOrWhiteSpace(formula))
+            //    return; // Cancel vai tukšs → atstāj logu
+            //appManager.SetColumnFormula(columnName, formula);
+            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+        }
+
         public void SaveMappingSetToJson()
         {
             string folderPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MappingSets");
@@ -319,5 +376,10 @@ namespace FileMappingEngine
             }
         }
         
+        private void Undo_Click(object sender, RoutedEventArgs e)
+        {
+            appManager.UndoLastAction();
+            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+        }
     }
 }

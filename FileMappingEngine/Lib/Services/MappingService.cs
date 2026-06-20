@@ -13,6 +13,7 @@ namespace FileMappingEngine.Lib.Services
     public class MappingService
     {
         private readonly List<ActionStep> steps = new List<ActionStep>();
+        private readonly List<ActionStep> previousSteps = new List<ActionStep>();
 
         public string[] GetJsonFiles()
         {
@@ -70,6 +71,24 @@ namespace FileMappingEngine.Lib.Services
             };
             return mapping;
         }
-        
+
+        public void ClearSteps()
+        {
+            steps.Clear();
+        }
+
+        public void SavePreviousSteps()
+        {
+            previousSteps.Clear();
+            previousSteps.AddRange(steps);
+        }
+
+        public void UndoLastStep()
+        {
+            if (steps.Count > 0)
+            {
+                steps.RemoveAt(steps.Count - 1);
+            }
+        }
     }
 }

@@ -19,6 +19,8 @@
                 </StackPanel>
                 <Button Name="saveFileButton" Content="Save File" VerticalAlignment="Top" Margin="20,0,20,0" Click="saveFileButton_Click"/>
                 <Button Name="saveMapping" Content="Save new mapping set" VerticalAlignment="Top" Margin="20,0,20,0" Click="SaveMappingSet_Click"/>
+                <Button Name="resetTable" Content="Reset Table" VerticalAlignment="Top" Margin="20,0,20,0" Click="ResetTable_Click"/>
+                <Button Name="undo" Content="Undo" VerticalAlignment="Top" Margin="20,0,20,0" Click="Undo_Click"/>
 
             </ToolBar>
             <Grid>
@@ -30,5 +32,68 @@
                   AutoGeneratingColumn="dataGrid_AutoGeneratingColumn"/>
             </Grid>
         </DockPanel>
+        <Grid x:Name="RenameColumnOverlay"
+      Background="#AA000000"
+      Visibility="Collapsed">
+
+            <Border HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Padding="30"
+            Background="White"
+            Width="450">
+
+                <StackPanel>
+
+                    <!-- Virsraksts -->
+                    <TextBlock Text="Rename Column"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       Margin="0,0,0,20"
+                       HorizontalAlignment="Center"/>
+
+                    <!-- Pašreizējais nosaukums -->
+                    <TextBlock Text="Current column name:"
+                       Margin="0,0,0,5"/>
+
+                    <TextBlock x:Name="txtCurrentColumnName"
+                       FontWeight="Bold"
+                       Margin="0,0,0,20"/>
+
+                    <!-- Jaunais nosaukums -->
+                    <TextBlock Text="New column name:"
+                       Margin="0,0,0,5"/>
+
+                    <TextBox x:Name="txtNewColumnName"
+                     Height="30"
+                     Margin="0,0,0,10"/>
+
+                    <!-- Validācijas teksts -->
+                    <TextBlock x:Name="txtRenameValidation"
+                       Foreground="Red"
+                       Visibility="Collapsed"
+                       Margin="0,0,0,15"/>
+
+                    <!-- Pogas -->
+                    <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center">
+
+                        <Button Content="Save"
+                        Width="100"
+                        Margin="5"
+                        Click="SaveRenameColumn_Click"/>
+
+                        <Button Content="Cancel"
+                        Width="100"
+                        Margin="5"
+                        Click="CancelRenameColumn_Click"/>
+
+                    </StackPanel>
+
+                </StackPanel>
+
+            </Border>
+
+        </Grid>
     </Grid>
+    
 </Window>

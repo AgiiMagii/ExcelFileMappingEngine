@@ -99,17 +99,23 @@ namespace FileMappingEngine.Lib
 
         public void RemoveColumn(string columnName)
         {
+            SavePreviousState();
+
             if (CurrentData.Columns.Contains(columnName))
+            {
                 CurrentData.Columns.Remove(columnName);
+            }
+                        
             if (!IsApplyingMapping)
             {
                 mappingEngine.RemoveColumnStep(columnName);
             }
-            
         }
 
         public void AddColumn(string direction, string anchorId)
         {
+            SavePreviousState();
+
             string newColumnName = GenerateColumnName();
 
             int index = CalculateColumnIndex(anchorId, direction);
@@ -180,13 +186,13 @@ namespace FileMappingEngine.Lib
             if (CurrentData.Columns.Contains(newName))
                 throw new ArgumentException($"Column name '{newName}' is already taken.");
 
+            SavePreviousState();
 
             CurrentData.Columns[oldName]?.ColumnName = newName;
             if (!IsApplyingMapping)
             {
                 mappingEngine.RenameColumnStep(oldName, newName);
             }
-            
         }
 
         public void ApplyMappingSet(string filePath)
@@ -217,6 +223,7 @@ namespace FileMappingEngine.Lib
                 IsApplyingMapping = false;
             }
         }
+
         private void ExecuteMappingSteps(MappingSet mapping)
         {
             foreach (var step in mapping.Steps.OrderBy(s => s.Order))
@@ -239,6 +246,32 @@ namespace FileMappingEngine.Lib
                         throw new InvalidOperationException($"Unknown action type: {step.ActionType}");
                 }
             }
+        }
+
+        public void ResetTable()
+        {
+            if (CurrentFile == null)
+                throw new InvalidOperationException("No file loaded.");
+            if (CurrentFile.RawData == null)
+                throw new InvalidOperationException("Raw data not loaded.");
+            CurrentFile.CurrentData = excelService.BuildDataTable(CurrentFile.RawData, CurrentFile.HeaderRowIndex);
+            mappingEngine.ClearSteps();
+        }
+
+        public void SavePreviousState()
+        {
+            CurrentFile?.PreviousData = CurrentData.Copy();
+            mappingEngine.SavePreviousSteps();
+        }
+
+        public void UndoLastAction()
+        {
+            if (CurrentFile == null)
+                throw new InvalidOperationException("No file loaded.");
+            if (CurrentFile.PreviousData == null)
+                throw new InvalidOperationException("No previous state available.");
+            mappingEngine.UndoLastStep();
+            CurrentFile.CurrentData = CurrentFile.PreviousData.Copy();
         }
     }
 }
