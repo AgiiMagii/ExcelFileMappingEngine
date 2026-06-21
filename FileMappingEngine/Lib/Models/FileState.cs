@@ -12,7 +12,7 @@ namespace FileMappingEngine.Lib.Models
 
         public int HeaderRowIndex { get; set; } = 1;
 
-        public DataTable? RawData { get; set; }
+        public RawExcelData? RawData { get; set; }
 
         public DataTable? CurrentData { get; set; }
 
@@ -21,6 +21,8 @@ namespace FileMappingEngine.Lib.Models
         public MappingSet? CurrentMapping { get; set; }
 
         public List<string[]>? IgnoredRows { get; set; }
+
+        public List<ColumnReference> Columns { get; set; } = new();
     }
 }
 

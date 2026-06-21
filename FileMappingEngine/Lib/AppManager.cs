@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml.Bibliography;
 using DocumentFormat.OpenXml.Drawing.Diagrams;
 using DocumentFormat.OpenXml.InkML;
+using DocumentFormat.OpenXml.Spreadsheet;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Services;
 using System;
@@ -38,7 +39,12 @@ namespace FileMappingEngine.Lib
             };
 
             CurrentFile.RawData = excelService.LoadRawData(filePath);
-            CurrentFile.CurrentData = excelService.BuildDataTable(CurrentFile.RawData, CurrentFile.HeaderRowIndex);
+                    
+            if (CurrentFile.RawData?.Data == null)
+                throw new InvalidOperationException("Failed to load data from file.");
+            
+            CurrentFile.CurrentData = excelService.BuildDataTable(CurrentFile.RawData.Data, CurrentFile.HeaderRowIndex);
+            CurrentFile.Columns = CurrentFile.RawData.Columns;
 
             return CurrentData;
         }
@@ -49,8 +55,10 @@ namespace FileMappingEngine.Lib
                 throw new InvalidOperationException("No file loaded.");
             if (CurrentFile.RawData == null)
                 throw new InvalidOperationException("Raw data not loaded.");
+            if (CurrentFile.RawData.Data == null)
+                throw new InvalidOperationException("Raw data table not available.");
             CurrentFile.HeaderRowIndex = newHeaderRow;
-            CurrentFile.CurrentData = excelService.BuildDataTable(CurrentFile.RawData, CurrentFile.HeaderRowIndex);
+            CurrentFile.CurrentData = excelService.BuildDataTable(CurrentFile.RawData.Data, CurrentFile.HeaderRowIndex);
         }
 
         public void CloseCurrentFile()
@@ -254,7 +262,9 @@ namespace FileMappingEngine.Lib
                 throw new InvalidOperationException("No file loaded.");
             if (CurrentFile.RawData == null)
                 throw new InvalidOperationException("Raw data not loaded.");
-            CurrentFile.CurrentData = excelService.BuildDataTable(CurrentFile.RawData, CurrentFile.HeaderRowIndex);
+            if (CurrentFile.RawData.Data == null)
+                throw new InvalidOperationException("Raw data table not available.");
+            CurrentFile.CurrentData = excelService.BuildDataTable(CurrentFile.RawData.Data, CurrentFile.HeaderRowIndex);
             mappingEngine.ClearSteps();
         }
 

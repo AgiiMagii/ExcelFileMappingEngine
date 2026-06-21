@@ -1,5 +1,6 @@
 ﻿using ClosedXML.Excel;
 using FileMappingEngine.Lib;
+using FileMappingEngine.Lib.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,9 +14,10 @@ namespace FileMappingEngine.Lib.Services
     {
         public List<string[]>? IgnoredRows { get; private set; }
 
-        public DataTable LoadRawData(string filePath)
+        public RawExcelData LoadRawData(string filePath)
         {
             DataTable rawData = new DataTable();
+            List<ColumnReference> columns = new();
 
             using XLWorkbook workbook = new XLWorkbook(filePath);
             IXLWorksheet worksheet = workbook.Worksheet(1);
@@ -26,7 +28,17 @@ namespace FileMappingEngine.Lib.Services
             // Izveido tehniskās kolonnas
             for (int c = 1; c <= maxCol; c++)
             {
-                rawData.Columns.Add($"Column{c}");
+                string columnName = $"Column{c}";
+
+                rawData.Columns.Add(columnName);
+
+                columns.Add(new ColumnReference
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = columnName,
+                    Index = c - 1,
+                    ExcelLetter = XLHelper.GetColumnLetterFromNumber(c)
+                });
             }
 
             // Ielādē visas rindas
@@ -45,7 +57,11 @@ namespace FileMappingEngine.Lib.Services
                 rawData.Rows.Add(dr);
             }
 
-            return rawData;
+            return new RawExcelData
+            {
+                Data = rawData,
+                Columns = columns
+            };
         }
 
         public DataTable BuildDataTable(DataTable rawData, int headerRowIndex = 1)

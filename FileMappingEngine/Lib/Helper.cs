@@ -22,19 +22,5 @@ namespace FileMappingEngine.Lib
 
             _isUpdating = false;
         }
-        public ColumnReference? FindById(List<ColumnReference> columns, string id)
-        {
-            return columns.FirstOrDefault(c => c.Id == id);
-        }
-
-        public ColumnReference? FindByName(List<ColumnReference> columns, string name)
-        {
-            return columns.FirstOrDefault(c => c.Name == name);
-        }
-
-        public ColumnReference? FindByIndex(List<ColumnReference> columns, int index)
-        {
-            return columns.FirstOrDefault(c => c.CurrentIndex == index);
-        }
     }
 }
