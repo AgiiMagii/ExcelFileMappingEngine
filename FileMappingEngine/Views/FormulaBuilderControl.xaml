@@ -7,6 +7,52 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
-            
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+
+        <!-- Column izvēle -->
+        <TextBlock Grid.Row="0"
+               Text="Select column:"
+               Margin="10,10,10,5"/>
+
+        <ComboBox Grid.Row="1"
+              x:Name="ColumnSelectorComboBox"
+              Height="30"
+              Margin="10,0,10,10"/>
+
+
+        <!-- Formula ievade -->
+        <TextBox Grid.Row="2"
+             x:Name="FormulaTextBox"
+             Margin="10"
+             Height="120"
+             VerticalAlignment="Top"
+             TextWrapping="Wrap"
+             AcceptsReturn="True"/>
+
+
+        <!-- Pogas -->
+        <StackPanel Grid.Row="3"
+                Orientation="Horizontal"
+                HorizontalAlignment="Center"
+                Margin="10">
+
+            <Button x:Name="SaveFormulaButton"
+                Content="Save"
+                Width="100"
+                Margin="5"/>
+
+            <Button x:Name="CancelFormulaButton"
+                Content="Cancel"
+                Width="100"
+                Margin="5"/>
+
+        </StackPanel>
+
     </Grid>
 </UserControl>

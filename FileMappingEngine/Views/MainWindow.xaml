@@ -94,6 +94,85 @@
             </Border>
 
         </Grid>
+        <Grid x:Name="MergeColumnsOverlay"
+      Background="#AA000000"
+      Visibility="Collapsed">
+
+            <Border HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Padding="30"
+            Background="White"
+            Width="450">
+
+                <StackPanel>
+
+                    <!-- Virsraksts -->
+                    <TextBlock Text="Merge Columns"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       Margin="0,0,0,20"
+                       HorizontalAlignment="Center"/>
+
+                    <!-- Pirmā kolonna -->
+                    <TextBlock Text="First column:"
+                       Margin="0,0,0,5"/>
+
+                    <ComboBox x:Name="cmbMergeColumn1"
+                      Height="30"
+                      Margin="0,0,0,15"/>
+
+                    <!-- Atdalītājs -->
+                    <TextBlock Text="Separator:"
+                       Margin="0,0,0,5"/>
+
+                    <TextBox x:Name="txtMergeSeparator"
+                     Height="30"
+                     Margin="0,0,0,15"
+                     Text=" "/>
+
+                    <!-- Otrā kolonna -->
+                    <TextBlock Text="Second column:"
+                       Margin="0,0,0,5"/>
+
+                    <ComboBox x:Name="cmbMergeColumn2"
+                      Height="30"
+                      Margin="0,0,0,15"/>
+
+                    <!-- Jaunās kolonnas nosaukums -->
+                    <TextBlock Text="Result column name:"
+                       Margin="0,0,0,5"/>
+
+                    <TextBox x:Name="txtMergeResultColumn"
+                     Height="30"
+                     Margin="0,0,0,10"/>
+
+                    <!-- Validācijas teksts -->
+                    <TextBlock x:Name="txtMergeValidation"
+                       Foreground="Red"
+                       Visibility="Collapsed"
+                       Margin="0,0,0,15"/>
+
+                    <!-- Pogas -->
+                    <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center">
+
+                        <Button Content="Save"
+                        Width="100"
+                        Margin="5"
+                        Click="SaveMergeColumns_Click"/>
+
+                        <Button Content="Cancel"
+                        Width="100"
+                        Margin="5"
+                        Click="CancelMergeColumns_Click"/>
+
+                    </StackPanel>
+
+                </StackPanel>
+
+            </Border>
+
+        </Grid>
     </Grid>
     
 </Window>

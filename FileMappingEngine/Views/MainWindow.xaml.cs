@@ -1,4 +1,5 @@
 ﻿using FileMappingEngine.Lib;
+using FileMappingEngine.Lib.Models;
 using Microsoft.Win32;
 using System.ComponentModel;
 using System.IO;
@@ -200,9 +201,13 @@ namespace FileMappingEngine
             menu.Items.Add(renameCol);
 
             // Set Data Type
-            MenuItem setDataType = new MenuItem { Header = "Set Data Type", Tag = column };
-            setDataType.Click += SetDataTypeMenuItem_Click;
-            menu.Items.Add(setDataType);
+            MenuItem setFormat = new MenuItem { Header = "Set Data Type", Tag = column };
+            setFormat.Click += SetDataTypeMenuItem_Click;
+            menu.Items.Add(setFormat);
+
+            MenuItem concat = new MenuItem { Header = "Merge columns", Tag = column };
+            concat.Click += ConcatColumnsMenuItem_Click;
+            menu.Items.Add(concat);
 
             MenuItem writeFormula = new MenuItem { Header = "Formula", Tag = column };
             writeFormula.Click += WriteFormulaMenuItem_Click;
@@ -239,47 +244,14 @@ namespace FileMappingEngine
                 : "Right";
             if (string.IsNullOrEmpty(anchorId))
                 return;
-            appManager.AddColumn(direction, anchorId);
+            appManager.AddColumn(direction, anchorId, null);
             helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
         }
         
         private void RenameColumnMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            //if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
-            //    return;
 
-            //string? oldColumnName = column.Header?.ToString();
-
-            //if (string.IsNullOrWhiteSpace(oldColumnName))
-            //    return;
-
-            //string newColumnName;
-            //do
-            //{
-            //    newColumnName = Microsoft.VisualBasic.Interaction.InputBox(
-            //        "Enter new column name:", "Rename Column", oldColumnName);
-
-            //    if (string.IsNullOrWhiteSpace(newColumnName))
-            //        return; // Cancel vai tukšs → atstāj logu
-
-            //    if (appManager.IsColumnNameTaken(newColumnName))
-            //    {
-            //        MessageBox.Show($"Column '{newColumnName}' already exists! Please enter another name.");
-            //        // Loop turpina, InputBox parādīsies atkal
-            //    }
-            //    else
-            //    {
-            //        break; // derīgs nosaukums
-            //    }
-
-            //} while (true);
-
-            //appManager.RenameColumn(oldColumnName, newColumnName);
-            //helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
-
-
-            if (sender is not MenuItem menuItem ||
-        menuItem.Tag is not DataGridColumn column)
+            if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
                 return;
 
             _oldColumnName = column.Header?.ToString();
@@ -294,6 +266,7 @@ namespace FileMappingEngine
 
             RenameColumnOverlay.Visibility = Visibility.Visible;
         }
+
         private void SaveRenameColumn_Click(object sender, RoutedEventArgs e)
         {
             string newName = txtNewColumnName.Text.Trim();
@@ -318,10 +291,17 @@ namespace FileMappingEngine
 
             RenameColumnOverlay.Visibility = Visibility.Collapsed;
         }
+
         private void CancelRenameColumn_Click(object sender, RoutedEventArgs e)
         {
             RenameColumnOverlay.Visibility = Visibility.Collapsed;
         }
+
+        private void CancelMergeColumns_Click(object sender, RoutedEventArgs e)
+        {
+            MergeColumnsOverlay.Visibility = Visibility.Collapsed;
+        }
+
         private void ResetTable_Click(object sender, RoutedEventArgs e)
         {
             if (appManager.CurrentFile == null)
@@ -329,9 +309,54 @@ namespace FileMappingEngine
             appManager.ResetTable();
             helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
         }
+
         private void SetDataTypeMenuItem_Click(object sender, RoutedEventArgs e)
         {
 
+        }
+
+        private void ConcatColumnsMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
+                return;
+            string? columnName = column.Header?.ToString(); // kolonna, kurai tiks pielietota formula
+            if (string.IsNullOrWhiteSpace(columnName))
+                return;
+
+            LoadCombosForMergeOverlay();
+
+            MergeColumnsOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void LoadCombosForMergeOverlay()
+        {
+            List<ColumnReference> columns = appManager.GetDataColumns() ?? new List<ColumnReference>();
+
+            cmbMergeColumn1.ItemsSource = columns;
+            cmbMergeColumn2.ItemsSource = columns;
+
+            cmbMergeColumn1.DisplayMemberPath = "Name";
+            cmbMergeColumn2.DisplayMemberPath = "Name";
+        }
+
+        private void SaveMergeColumns_Click(object sender, RoutedEventArgs e)
+        {
+            ColumnReference? first =
+                cmbMergeColumn1.SelectedItem as ColumnReference;
+
+            ColumnReference? second =
+                cmbMergeColumn2.SelectedItem as ColumnReference;
+
+            if (first == null || second == null)
+                return;
+
+            string separator = txtMergeSeparator.Text;
+
+            string resultName = txtMergeResultColumn.Text;
+
+            appManager.MergeColumns(first, second, separator, resultName);
+            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+            MergeColumnsOverlay.Visibility = Visibility.Collapsed;
         }
 
         private void WriteFormulaMenuItem_Click(object sender, RoutedEventArgs e)

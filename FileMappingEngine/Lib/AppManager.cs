@@ -28,7 +28,7 @@ namespace FileMappingEngine.Lib
         public FileState? CurrentFile { get; private set; }
         public DataTable CurrentData => CurrentFile?.CurrentData ?? throw new InvalidOperationException("No file loaded.");
 
-        public bool IsApplyingMapping { get; private set; }
+        private bool IsApplyingMapping { get; set; }
 
         public DataTable OpenFile(string filePath)
         {
@@ -39,10 +39,10 @@ namespace FileMappingEngine.Lib
             };
 
             CurrentFile.RawData = excelService.LoadRawData(filePath);
-                    
+
             if (CurrentFile.RawData?.Data == null)
                 throw new InvalidOperationException("Failed to load data from file.");
-            
+
             CurrentFile.CurrentData = excelService.BuildDataTable(CurrentFile.RawData.Data, CurrentFile.HeaderRowIndex);
             CurrentFile.Columns = CurrentFile.RawData.Columns;
 
@@ -109,27 +109,27 @@ namespace FileMappingEngine.Lib
         {
             SavePreviousState();
 
-            if (CurrentData.Columns.Contains(columnName))
-            {
-                CurrentData.Columns.Remove(columnName);
-            }
-                        
+            RemoveColumnCore(columnName);
+
             if (!IsApplyingMapping)
             {
                 mappingEngine.RemoveColumnStep(columnName);
             }
         }
 
-        public void AddColumn(string direction, string anchorId)
+        private void RemoveColumnCore(string columnName)
+        {
+            if (CurrentData.Columns.Contains(columnName))
+            {
+                CurrentData.Columns.Remove(columnName);
+            }
+        }
+
+        public void AddColumn(string direction, string anchorId, string? newName)
         {
             SavePreviousState();
 
-            string newColumnName = GenerateColumnName();
-
-            int index = CalculateColumnIndex(anchorId, direction);
-
-            CurrentData.Columns.Add(newColumnName);
-            CurrentData.Columns[newColumnName]?.SetOrdinal(index);
+            string newColumnName = AddColumnCore(direction, anchorId, newName);
 
             if (!IsApplyingMapping)
             {
@@ -138,6 +138,18 @@ namespace FileMappingEngine.Lib
                 anchorId,
                 direction);
             }
+        }
+
+        private string AddColumnCore(string direction, string anchorId, string? newName)
+        {
+            string newColumnName = newName ?? GenerateColumnName();
+
+            int index = CalculateColumnIndex(anchorId, direction);
+
+            CurrentData.Columns.Add(newColumnName);
+            CurrentData.Columns[newColumnName]?.SetOrdinal(index);
+
+            return newColumnName;
         }
 
         private string GenerateColumnName()
@@ -189,18 +201,24 @@ namespace FileMappingEngine.Lib
 
         public void RenameColumn(string oldName, string newName)
         {
+            SavePreviousState();
+
+            RenameColumnCore(oldName, newName);
+
+            if (!IsApplyingMapping)
+            {
+                mappingEngine.RenameColumnStep(oldName, newName);
+            }
+        }
+
+        private void RenameColumnCore(string oldName, string newName)
+        {
             if (!CurrentData.Columns.Contains(oldName))
                 throw new ArgumentException($"Column '{oldName}' does not exist.");
             if (CurrentData.Columns.Contains(newName))
                 throw new ArgumentException($"Column name '{newName}' is already taken.");
 
-            SavePreviousState();
-
             CurrentData.Columns[oldName]?.ColumnName = newName;
-            if (!IsApplyingMapping)
-            {
-                mappingEngine.RenameColumnStep(oldName, newName);
-            }
         }
 
         public void ApplyMappingSet(string filePath)
@@ -239,17 +257,25 @@ namespace FileMappingEngine.Lib
                 switch (step.ActionType)
                 {
                     case "DeleteColumn":
-                        RemoveColumn(step.ColumnId);
+                        RemoveColumnCore(step.ColumnId);
                         break;
                     case "AddColumn":
                         string anchorId = step.Parameters["AnchorColumnId"].ToString() ?? throw new InvalidOperationException("Anchor column ID missing.");
                         string direction = step.Parameters["Direction"].ToString() ?? throw new InvalidOperationException("Direction missing.");
-                        AddColumn(direction, anchorId);
+                        string? givenName = step.Parameters.ContainsKey("NewName") ? step.Parameters["NewName"].ToString() : null;
+                        AddColumnCore(direction, anchorId, givenName);
                         break;
                     case "RenameColumn":
                         string newName = step.Parameters["NewName"].ToString() ?? throw new InvalidOperationException("New name missing.");
-                        RenameColumn(step.ColumnId, newName);
+                        RenameColumnCore(step.ColumnId, newName);
                         break;
+                    case "MergeColumns":
+                        string firstColumnName = step.Parameters["FirstColumn"].ToString() ?? throw new InvalidOperationException("First column name missing.");
+                        string secondColumnName = step.Parameters["SecondColumn"].ToString() ?? throw new InvalidOperationException("Second column name missing.");
+                        string separator = step.Parameters["Separator"].ToString() ?? throw new InvalidOperationException("Separator missing.");
+                        MergeColumns(new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, step.ColumnId);
+                        break;
+
                     default:
                         throw new InvalidOperationException($"Unknown action type: {step.ActionType}");
                 }
@@ -282,6 +308,54 @@ namespace FileMappingEngine.Lib
                 throw new InvalidOperationException("No previous state available.");
             mappingEngine.UndoLastStep();
             CurrentFile.CurrentData = CurrentFile.PreviousData.Copy();
+        }
+
+        public void MergeColumns(ColumnReference first, ColumnReference second, string separator, string resultColumnName)
+        {
+            if (CurrentFile == null)
+                throw new InvalidOperationException("No file loaded.");
+            if (CurrentFile.CurrentData == null)
+                throw new InvalidOperationException("Current data not available.");
+
+            SavePreviousState();
+
+            AddColumnCore("right", first.Name, resultColumnName);
+
+            int newColumnIndex = CurrentData.Columns.IndexOf(resultColumnName);
+            if (newColumnIndex == -1)
+                throw new InvalidOperationException($"Result column '{resultColumnName}' was not added correctly.");
+
+            foreach (DataRow row in CurrentData.Rows)
+            {
+                string firstValue = row[first.Name]?.ToString() ?? string.Empty;
+                string secondValue = row[second.Name]?.ToString() ?? string.Empty;
+                row[resultColumnName] = $"{firstValue}{separator}{secondValue}";
+            }
+            if (!IsApplyingMapping)
+            {
+                mappingEngine.AddMergeColumnsStep(resultColumnName, first.Name, second.Name, separator);
+            }
+
+            RemoveColumnCore(first.Name);
+            RemoveColumnCore(second.Name);
+        }
+
+        public List<ColumnReference> GetDataColumns()
+        {
+            if (CurrentFile == null)
+                throw new InvalidOperationException("No file loaded.");
+            if (CurrentData == null)
+                throw new InvalidOperationException("Current data not available.");
+
+            return CurrentData.Columns
+                .Cast<DataColumn>()
+                .Select((col, index) => new ColumnReference
+                {
+                    Id = col.ColumnName,
+                    Name = col.ColumnName,
+                    Index = index
+                })
+                .ToList();
         }
     }
 }

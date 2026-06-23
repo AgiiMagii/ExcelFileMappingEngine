@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using static FileMappingEngine.Lib.Models.Enums;
 
 namespace FileMappingEngine.Lib.Models
 {
@@ -11,5 +12,7 @@ namespace FileMappingEngine.Lib.Models
 
         public int Index { get; set; } = -1;
         public string? ExcelLetter { get; set; }
+
+        public ColumnFormat Format { get; set; } = ColumnFormat.Text;
     }
 }

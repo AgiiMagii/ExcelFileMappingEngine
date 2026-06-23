@@ -90,5 +90,21 @@ namespace FileMappingEngine.Lib.Services
                 steps.RemoveAt(steps.Count - 1);
             }
         }
+
+        public void AddMergeColumnsStep(string newColumnName, string firstColumn, string secondColumn, string separator)
+        {
+            steps.Add(new ActionStep
+            {
+                ActionType = "MergeColumns",
+                ColumnId = newColumnName,
+                Order = steps.Count + 1,
+                Parameters = new Dictionary<string, object>
+                {
+                    ["FirstColumn"] = firstColumn,
+                    ["SecondColumn"] = secondColumn,
+                    ["Separator"] = separator
+                }
+            });
+        }
     }
 }
