@@ -116,7 +116,6 @@ namespace FileMappingEngine.Lib.Services
                 Order = steps.Count + 1,
                 Parameters = new Dictionary<string, object>
                 {
-                    ["ColumnName"] = columnName,
                     ["Ascending"] = sortOrder
                 }
             });

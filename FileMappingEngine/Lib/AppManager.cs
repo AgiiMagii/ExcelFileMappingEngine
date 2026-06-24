@@ -188,11 +188,17 @@ namespace FileMappingEngine.Lib
         {
             if (CurrentFile == null)
                 throw new InvalidOperationException("No file loaded.");
+
+            if (CurrentFile.SortedColumn != null && CurrentFile.SortAscending.HasValue)
+            {
+                mappingEngine.AddSortStep(CurrentFile.SortedColumn, CurrentFile.SortAscending.Value);
+            }
+
             string fileName = Path.GetFileNameWithoutExtension(filePath);
             var mapping = mappingEngine.GenerateMappingSet(
                 fileName,
                 CurrentFile.HeaderRowIndex);
-
+            
             JsonService.CreateJson(mapping, filePath);
         }
 
@@ -278,9 +284,8 @@ namespace FileMappingEngine.Lib
                         MergeColumns(new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, step.ColumnId);
                         break;
                     case "Sort":
-                        string ColumnName = step.Parameters["ColumnName"].ToString() ?? throw new InvalidOperationException("Sort column name missing.");
                         bool ascending = ((JsonElement)step.Parameters["Ascending"]).GetBoolean();
-                        SortDataCore(ColumnName, ascending);
+                        SortDataCore(step.ColumnId, ascending);
                         break;
 
                     default:
@@ -395,11 +400,6 @@ namespace FileMappingEngine.Lib
 
             CurrentFile.SortedColumn = columnName;
             CurrentFile.SortAscending = ascending;
-
-            if (!IsApplyingMapping)
-            {
-                mappingEngine.AddSortStep(columnName, ascending);
-            }
         }
 
         private void SortDataCore(string columnName, bool ascending)

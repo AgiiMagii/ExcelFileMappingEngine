@@ -6,6 +6,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 
 namespace FileMappingEngine
 {
@@ -16,6 +17,7 @@ namespace FileMappingEngine
     {
         AppManager appManager = new AppManager();
         Helper helper = new Helper();
+        private readonly HashSet<string> _selectedColumns = new();
         private bool _isFirstLoad = false;
         private string? _oldColumnName;
         public MainWindow()
@@ -82,6 +84,8 @@ namespace FileMappingEngine
         private void ReloadGrid()
         {
             helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+
+            helper.UpdateSelectedColumnHeaders(dataGrid,_selectedColumns);
 
             if (appManager.CurrentFile?.SortedColumn != null)
             {
@@ -200,12 +204,66 @@ namespace FileMappingEngine
             DataGridColumn column = e.Column;
             System.Windows.Style style = new System.Windows.Style(typeof(DataGridColumnHeader));
             // Add context menu to each column header
-            style.Setters.Add(new Setter(ContextMenuProperty, CreateColumnHeaderContextMenu(column)));
+            //style.Setters.Add(new Setter(ContextMenuProperty, CreateColumnHeaderContextMenuSingle(column)));
 
+            style.Setters.Add(new EventSetter(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler(ColumnHeader_PreviewMouseLeftButtonDown)));
+            style.Setters.Add(new EventSetter(ContextMenuOpeningEvent, new ContextMenuEventHandler(ColumnHeader_ContextMenuOpening)));
             column.HeaderStyle = style;
         }
+        private void ColumnHeader_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            if (sender is not DataGridColumnHeader header)
+                return;
 
-        private ContextMenu CreateColumnHeaderContextMenu(DataGridColumn column)
+            string columnName = header.Content?.ToString() ?? "";
+
+            if (_selectedColumns.Count > 1)
+            {
+                header.ContextMenu = CreateColumnHeaderContextMenuMulti(_selectedColumns);
+            }
+            else
+            {
+                header.ContextMenu =
+                    CreateColumnHeaderContextMenuSingle(
+                        header.Column);
+            }
+        }
+        private void ColumnHeader_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not DataGridColumnHeader header)
+                return;
+
+            string? columnName = header.Content?.ToString();
+
+            if (string.IsNullOrEmpty(columnName))
+                return;
+
+            bool ctrlPressed = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+
+            if (ctrlPressed)
+            {
+                if (_selectedColumns.Contains(columnName))
+                    _selectedColumns.Remove(columnName);
+                else
+                    _selectedColumns.Add(columnName);
+
+                helper.UpdateSelectedColumnHeaders(
+                    dataGrid,
+                    _selectedColumns);
+
+                e.Handled = true;
+            }
+            else
+            {
+                _selectedColumns.Clear();
+
+                helper.UpdateSelectedColumnHeaders(
+                    dataGrid,
+                    _selectedColumns);
+            }
+        }
+
+        private ContextMenu CreateColumnHeaderContextMenuSingle(DataGridColumn column)
         {
             ContextMenu menu = new ContextMenu();
 
@@ -251,6 +309,20 @@ namespace FileMappingEngine
             return menu;
         }
 
+        private ContextMenu CreateColumnHeaderContextMenuMulti(HashSet<string> columns)
+        {
+            ContextMenu menu = new ContextMenu();
+
+            // Remove Column
+            MenuItem removeItem = new MenuItem { Header = "Remove Column", Tag = columns };
+            removeItem.Click += RemoveColumnMenuItems_Click;
+            menu.Items.Add(removeItem);
+
+            menu.Items.Add(new MenuItem { Header = "-" });
+
+            return menu;
+        }
+
         private void RemoveColumnMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
@@ -262,6 +334,21 @@ namespace FileMappingEngine
                 return;
 
             appManager.RemoveColumn(columnName);
+            ReloadGrid();
+        }
+
+        private void RemoveColumnMenuItems_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem menuItem || menuItem.Tag is not HashSet<string> columns)
+                return;
+
+            foreach (var columnName in columns)
+            {
+                if (string.IsNullOrEmpty(columnName))
+                    continue;
+
+                appManager.RemoveColumn(columnName);
+            }
             ReloadGrid();
         }
 
