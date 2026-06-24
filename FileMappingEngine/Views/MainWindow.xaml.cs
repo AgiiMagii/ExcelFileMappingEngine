@@ -46,7 +46,7 @@ namespace FileMappingEngine
             }
 
             GenerateMappingSetButtons();
-            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+            ReloadGrid();
         }
 
         private void LoadComboBox()
@@ -79,12 +79,22 @@ namespace FileMappingEngine
             }
         }
 
+        private void ReloadGrid()
+        {
+            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+
+            if (appManager.CurrentFile?.SortedColumn != null)
+            {
+                RestoreSort();
+            }
+        }
+
         private void MappingSetButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not Button button || button.Tag is not string filePath)
                 return;
             appManager.ApplyMappingSet(filePath);
-            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+            ReloadGrid();
         }
 
         private void chooseFileButton_Click(object sender, RoutedEventArgs e)
@@ -124,7 +134,7 @@ namespace FileMappingEngine
                 int headerRowIndex = cbHeaderRow.SelectedIndex + 1;
 
                 appManager.UpdateHeaderRow(headerRowIndex);
-                helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+                ReloadGrid();
             }
         }
 
@@ -159,7 +169,30 @@ namespace FileMappingEngine
 
         private void dataGrid_Sorting(object sender, DataGridSortingEventArgs e)
         {
-            if (appManager.CurrentData == null || appManager.CurrentData.Columns.Count == 0) return;
+            string columnName = e.Column.Header.ToString() ?? "";
+
+            bool ascending =
+                e.Column.SortDirection != ListSortDirection.Ascending;
+
+            appManager.SortData(columnName, ascending);
+        }
+
+        private void RestoreSort()
+        {
+            if (appManager.CurrentFile?.SortedColumn == null)
+                return;
+
+            foreach (var column in dataGrid.Columns)
+            {
+                if (column.Header?.ToString() ==
+                    appManager.CurrentFile.SortedColumn)
+                {
+                    column.SortDirection =
+                        appManager.CurrentFile.SortAscending == true
+                        ? ListSortDirection.Ascending
+                        : ListSortDirection.Descending;
+                }
+            }
         }
 
         private void dataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
@@ -229,7 +262,7 @@ namespace FileMappingEngine
                 return;
 
             appManager.RemoveColumn(columnName);
-            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+            ReloadGrid();
         }
 
         private void AddColumnMenuItem_Click(object sender, RoutedEventArgs e)
@@ -245,7 +278,7 @@ namespace FileMappingEngine
             if (string.IsNullOrEmpty(anchorId))
                 return;
             appManager.AddColumn(direction, anchorId, null);
-            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+            ReloadGrid();
         }
         
         private void RenameColumnMenuItem_Click(object sender, RoutedEventArgs e)
@@ -307,7 +340,7 @@ namespace FileMappingEngine
             if (appManager.CurrentFile == null)
                 return;
             appManager.ResetTable();
-            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+            ReloadGrid();
         }
 
         private void SetDataTypeMenuItem_Click(object sender, RoutedEventArgs e)
@@ -355,7 +388,7 @@ namespace FileMappingEngine
             string resultName = txtMergeResultColumn.Text;
 
             appManager.MergeColumns(first, second, separator, resultName);
-            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+            ReloadGrid();
             MergeColumnsOverlay.Visibility = Visibility.Collapsed;
         }
 
@@ -376,7 +409,7 @@ namespace FileMappingEngine
             //if (string.IsNullOrWhiteSpace(formula))
             //    return; // Cancel vai tukšs → atstāj logu
             //appManager.SetColumnFormula(columnName, formula);
-            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+            ReloadGrid();
         }
 
         public void SaveMappingSetToJson()
@@ -404,7 +437,7 @@ namespace FileMappingEngine
         private void Undo_Click(object sender, RoutedEventArgs e)
         {
             appManager.UndoLastAction();
-            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+            ReloadGrid();
         }
     }
 }

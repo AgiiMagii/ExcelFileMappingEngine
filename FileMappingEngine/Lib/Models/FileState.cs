@@ -11,6 +11,8 @@ namespace FileMappingEngine.Lib.Models
         public string? FileName { get; set; }
 
         public int HeaderRowIndex { get; set; } = 1;
+        public string? SortedColumn { get; set; }
+        public bool? SortAscending { get; set; }
 
         public RawExcelData? RawData { get; set; }
 

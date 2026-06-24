@@ -106,5 +106,20 @@ namespace FileMappingEngine.Lib.Services
                 }
             });
         }
+
+        public void AddSortStep(string columnName, bool sortOrder)
+        {
+            steps.Add(new ActionStep
+            {
+                ActionType = "Sort",
+                ColumnId = columnName,
+                Order = steps.Count + 1,
+                Parameters = new Dictionary<string, object>
+                {
+                    ["ColumnName"] = columnName,
+                    ["Ascending"] = sortOrder
+                }
+            });
+        }
     }
 }

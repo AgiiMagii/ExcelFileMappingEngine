@@ -1,11 +1,13 @@
 ﻿using DocumentFormat.OpenXml.Bibliography;
 using DocumentFormat.OpenXml.Drawing.Diagrams;
 using DocumentFormat.OpenXml.InkML;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using DocumentFormat.OpenXml.Spreadsheet;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Services;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.IO;
 using System.Text;
@@ -275,6 +277,11 @@ namespace FileMappingEngine.Lib
                         string separator = step.Parameters["Separator"].ToString() ?? throw new InvalidOperationException("Separator missing.");
                         MergeColumns(new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, step.ColumnId);
                         break;
+                    case "Sort":
+                        string ColumnName = step.Parameters["ColumnName"].ToString() ?? throw new InvalidOperationException("Sort column name missing.");
+                        bool ascending = ((JsonElement)step.Parameters["Ascending"]).GetBoolean();
+                        SortDataCore(ColumnName, ascending);
+                        break;
 
                     default:
                         throw new InvalidOperationException($"Unknown action type: {step.ActionType}");
@@ -310,33 +317,53 @@ namespace FileMappingEngine.Lib
             CurrentFile.CurrentData = CurrentFile.PreviousData.Copy();
         }
 
-        public void MergeColumns(ColumnReference first, ColumnReference second, string separator, string resultColumnName)
+        public void MergeColumns(ColumnReference first, ColumnReference second, string separator, string? resultColumnName)
         {
             if (CurrentFile == null)
                 throw new InvalidOperationException("No file loaded.");
-            if (CurrentFile.CurrentData == null)
+
+            if (CurrentData == null)
                 throw new InvalidOperationException("Current data not available.");
 
             SavePreviousState();
 
-            AddColumnCore("right", first.Name, resultColumnName);
+            string targetColumn =
+                string.IsNullOrWhiteSpace(resultColumnName)
+                ? first.Name
+                : resultColumnName;
 
-            int newColumnIndex = CurrentData.Columns.IndexOf(resultColumnName);
-            if (newColumnIndex == -1)
-                throw new InvalidOperationException($"Result column '{resultColumnName}' was not added correctly.");
+
+            if (targetColumn != first.Name)
+            {
+                AddColumnCore("right", first.Name, targetColumn);
+            }
+
 
             foreach (DataRow row in CurrentData.Rows)
             {
-                string firstValue = row[first.Name]?.ToString() ?? string.Empty;
-                string secondValue = row[second.Name]?.ToString() ?? string.Empty;
-                row[resultColumnName] = $"{firstValue}{separator}{secondValue}";
-            }
-            if (!IsApplyingMapping)
-            {
-                mappingEngine.AddMergeColumnsStep(resultColumnName, first.Name, second.Name, separator);
+                string firstValue = row[first.Name]?.ToString() ?? "";
+                string secondValue = row[second.Name]?.ToString() ?? "";
+
+                row[targetColumn] =
+                    string.IsNullOrEmpty(secondValue)
+                    ? firstValue
+                    : $"{firstValue}{separator}{secondValue}";
             }
 
-            RemoveColumnCore(first.Name);
+            if (!IsApplyingMapping)
+            {
+                mappingEngine.AddMergeColumnsStep(
+                    targetColumn,
+                    first.Name,
+                    second.Name,
+                    separator);
+            }
+
+            if (targetColumn != first.Name)
+            {
+                RemoveColumnCore(first.Name);
+            }
+
             RemoveColumnCore(second.Name);
         }
 
@@ -356,6 +383,36 @@ namespace FileMappingEngine.Lib
                     Index = index
                 })
                 .ToList();
+        }
+
+        public void SortData(string columnName, bool ascending)
+        {
+            if (CurrentFile == null)
+                throw new InvalidOperationException("No file loaded.");
+            SavePreviousState();
+
+            SortDataCore(columnName, ascending);
+
+            CurrentFile.SortedColumn = columnName;
+            CurrentFile.SortAscending = ascending;
+
+            if (!IsApplyingMapping)
+            {
+                mappingEngine.AddSortStep(columnName, ascending);
+            }
+        }
+
+        private void SortDataCore(string columnName, bool ascending)
+        {
+            if (!CurrentData.Columns.Contains(columnName))
+                throw new ArgumentException($"Column '{columnName}' does not exist.");
+
+            string direction = ascending ? "ASC" : "DESC";
+
+            DataView view = CurrentData.DefaultView;
+            view.Sort = $"{columnName} {direction}";
+
+            CurrentFile!.CurrentData = view.ToTable();
         }
     }
 }
