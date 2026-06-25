@@ -120,5 +120,19 @@ namespace FileMappingEngine.Lib.Services
                 }
             });
         }
+
+        public void AddFormulaStep(string columnName, string formula)
+        {
+            steps.Add(new ActionStep
+            {
+                ActionType = "Formula",
+                ColumnId = columnName,
+                Order = steps.Count + 1,
+                Parameters = new Dictionary<string, object>
+                {
+                    ["Formula"] = formula
+                }
+            });
+        }
     }
 }

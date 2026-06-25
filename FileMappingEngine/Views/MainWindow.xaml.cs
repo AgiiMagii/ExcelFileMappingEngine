@@ -1,5 +1,6 @@
 ﻿using FileMappingEngine.Lib;
 using FileMappingEngine.Lib.Models;
+using FileMappingEngine.Views;
 using Microsoft.Win32;
 using System.ComponentModel;
 using System.IO;
@@ -203,8 +204,6 @@ namespace FileMappingEngine
         {
             DataGridColumn column = e.Column;
             System.Windows.Style style = new System.Windows.Style(typeof(DataGridColumnHeader));
-            // Add context menu to each column header
-            //style.Setters.Add(new Setter(ContextMenuProperty, CreateColumnHeaderContextMenuSingle(column)));
 
             style.Setters.Add(new EventSetter(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler(ColumnHeader_PreviewMouseLeftButtonDown)));
             style.Setters.Add(new EventSetter(ContextMenuOpeningEvent, new ContextMenuEventHandler(ColumnHeader_ContextMenuOpening)));
@@ -486,17 +485,22 @@ namespace FileMappingEngine
             string? columnName = column.Header?.ToString(); // kolonna, kurai tiks pielietota formula
             if (string.IsNullOrWhiteSpace(columnName))
                 return;
-            // izveidot controller vai window, kurā ir combo box vai cts vizuāls elements,
-            // kur lietotājs var izvēlēties dataGrid esošo kolonnu nosaukumus, kurus ievietot firmulā.
-            // Piemēram, "Price" * "Total_amount"
-            // Tajā pašā window ir textbox, kur tiek ievadīta šī vai jebkura cita formula.
-            // Window piedāvā dažādas opcijas, piemēram, saglabāt formulu vai atcelt.
-            // Ja lietotājs izvēlas saglabāt, tad formula tiek saglabāta konkrētajai kolonnai.
 
-            //if (string.IsNullOrWhiteSpace(formula))
-            //    return; // Cancel vai tukšs → atstāj logu
-            //appManager.SetColumnFormula(columnName, formula);
-            ReloadGrid();
+            FormulaBuilderControl formulaBuilder = new(columnName, appManager);
+            Window dialog = new Window
+            {
+                Content = formulaBuilder,
+                Title = "Formula Builder",
+                SizeToContent = SizeToContent.WidthAndHeight,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = Application.Current.MainWindow,
+                ResizeMode = ResizeMode.NoResize
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                ReloadGrid();
+            }
         }
 
         public void SaveMappingSetToJson()

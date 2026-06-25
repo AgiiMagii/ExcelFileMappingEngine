@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Drawing.Text;
 using System.IO;
 using System.Text;
 using System.Text.Json;
@@ -27,6 +28,7 @@ namespace FileMappingEngine.Lib
         // - izveidot pārbaudi, kas nosaka, kuri mappingi atbilst faila struktūrai.
         private readonly ExcelService excelService = new ExcelService();
         private readonly MappingService mappingEngine = new MappingService();
+        private readonly FormulaService formulaService = new FormulaService();
         public FileState? CurrentFile { get; private set; }
         public DataTable CurrentData => CurrentFile?.CurrentData ?? throw new InvalidOperationException("No file loaded.");
 
@@ -287,6 +289,10 @@ namespace FileMappingEngine.Lib
                         bool ascending = ((JsonElement)step.Parameters["Ascending"]).GetBoolean();
                         SortDataCore(step.ColumnId, ascending);
                         break;
+                    case "Formula":
+                        string formula = step.Parameters["Formula"].ToString() ?? throw new InvalidOperationException("Formula missing.");
+                        ApplyFormulaToColumnCore(step.ColumnId, formula);
+                        break;
 
                     default:
                         throw new InvalidOperationException($"Unknown action type: {step.ActionType}");
@@ -414,5 +420,49 @@ namespace FileMappingEngine.Lib
 
             CurrentFile!.CurrentData = view.ToTable();
         }
+
+        public void ApplyFormulaToColumn(string columnName, string formula)
+        {
+            if (CurrentFile == null)
+                throw new InvalidOperationException("No file loaded.");
+
+            if (!CurrentData.Columns.Contains(columnName))
+                throw new ArgumentException($"Column '{columnName}' does not exist.");
+
+            SavePreviousState();
+
+            ApplyFormulaToColumnCore(columnName, formula);
+
+            if (!IsApplyingMapping)
+            {
+                mappingEngine.AddFormulaStep(
+                    columnName,
+                    formula);
+            }
+        }
+
+        public void ApplyFormulaToColumnCore(string columnName, string formula)
+        {
+            if (CurrentFile == null)
+                throw new InvalidOperationException("No file loaded.");
+            if (!CurrentData.Columns.Contains(columnName))
+                throw new ArgumentException($"Column '{columnName}' does not exist.");
+            var columns = GetDataColumns();
+            List<FormulaStep> steps =
+                formulaService.InterpretFormula(formula, columns);
+            ApplyFormula(
+                CurrentData,
+                columnName,
+                steps);
+        }
+
+        private void ApplyFormula(DataTable dataTable, string targetColumn, List<FormulaStep> steps)
+        {
+            foreach (DataRow row in dataTable.Rows)
+            {
+                row[targetColumn] = formulaService.Calculate(row, steps);
+            }
+        }
+        
     }
 }
