@@ -349,6 +349,7 @@ namespace FileMappingEngine
                 appManager.RemoveColumn(columnName);
             }
             ReloadGrid();
+            _selectedColumns.Clear();
         }
 
         private void AddColumnMenuItem_Click(object sender, RoutedEventArgs e)

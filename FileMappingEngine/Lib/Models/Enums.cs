@@ -19,16 +19,11 @@ namespace FileMappingEngine.Lib.Models
             Concat,
             Upper,
             Lower,
-            Trim
-        }
-        public enum FormulaStepType
-        {
-            Column,
-            Constant,
-            Operator,
-            Function,
-            ParenthesisOpen,
-            ParenthesisClose
+            Trim,
+            Sum,
+            Average,
+            Min,
+            Max,
         }
         public enum ColumnFormat
         {
@@ -38,6 +33,23 @@ namespace FileMappingEngine.Lib.Models
             Percentage,
             Date,
             Text
+        }
+        public enum TokenType
+        {
+            Number,
+            Column,
+            Operator,
+            Function,
+            OpenParenthesis,
+            CloseParenthesis,
+            Comma
+        }
+        public enum FormulaNodeType
+        {
+            Constant,
+            Column,
+            Operator,
+            Function
         }
     }
 }

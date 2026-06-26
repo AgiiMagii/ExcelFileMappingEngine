@@ -445,24 +445,36 @@ namespace FileMappingEngine.Lib
         {
             if (CurrentFile == null)
                 throw new InvalidOperationException("No file loaded.");
+
             if (!CurrentData.Columns.Contains(columnName))
-                throw new ArgumentException($"Column '{columnName}' does not exist.");
-            var columns = GetDataColumns();
-            List<FormulaStep> steps =
-                formulaService.InterpretFormula(formula, columns);
+                throw new ArgumentException(
+                    $"Column '{columnName}' does not exist.");
+
+
+            var tokenizer = new FormulaService();
+
+
+            var tokens = tokenizer.Tokenize(formula);
+
+
+            var formulaTree = tokenizer.Parse(tokens);
+
+
             ApplyFormula(
                 CurrentData,
                 columnName,
-                steps);
+                formulaTree);
+
         }
 
-        private void ApplyFormula(DataTable dataTable, string targetColumn, List<FormulaStep> steps)
+        private void ApplyFormula(DataTable dataTable, string targetColumn, FormulaNode formulaTree)
         {
             foreach (DataRow row in dataTable.Rows)
             {
-                row[targetColumn] = formulaService.Calculate(row, steps);
+                double result = formulaService.Evaluate(formulaTree, row);
+
+                row[targetColumn] = result;
             }
         }
-        
     }
 }
