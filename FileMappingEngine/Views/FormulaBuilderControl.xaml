@@ -35,7 +35,6 @@
              Height="120"
              VerticalAlignment="Top"
              TextWrapping="Wrap"
-             TextChanged="FormulaTextBox_TextChanged"
              AcceptsReturn="True"/>
 
 

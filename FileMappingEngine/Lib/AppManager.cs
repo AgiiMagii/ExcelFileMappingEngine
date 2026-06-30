@@ -506,6 +506,7 @@ namespace FileMappingEngine.Lib
                 mappingEngine.AddSetColumnDataTypeStep(columnName, dataType);
             }
         }
+
         private void SetColumnDataTypeCore(string columnName, Type dataType)
         {
             if (!CurrentData.Columns.Contains(columnName))
@@ -555,33 +556,5 @@ namespace FileMappingEngine.Lib
             newColumn.ColumnName = columnName;
             newColumn.SetOrdinal(ordinal);
         }
-        //private void SetColumnDataTypeCore(string columnName, Type dataType)
-        //{
-        //    if (!CurrentData.Columns.Contains(columnName))
-        //        throw new ArgumentException($"Column '{columnName}' does not exist.");
-
-        //    DataColumn? column = CurrentData.Columns[columnName];
-        //    int? ordinal = column?.Ordinal;
-
-        //    DataColumn newColumn = new DataColumn(columnName + "_tmp", dataType);
-
-        //    CurrentData.Columns.Add(newColumn);
-
-        //    foreach (DataRow row in CurrentData.Rows)
-        //    {
-        //        object? value = row[columnName];
-        //        try
-        //        {
-        //            row[newColumn.ColumnName] = Convert.ChangeType(value, dataType);
-        //        }
-        //        catch
-        //        {
-        //            row[newColumn.ColumnName] = DBNull.Value;
-        //        }
-        //    }
-        //    CurrentData.Columns.Remove(columnName);
-        //    newColumn.ColumnName = columnName;
-        //    newColumn.SetOrdinal(ordinal ?? CurrentData.Columns.Count - 1);
-        //}
     }
 }

@@ -23,26 +23,31 @@ namespace FileMappingEngine.Views
         private readonly AppManager _appManager;
         private List<ColumnReference>? _columns;
         private readonly string _columnName;
+
         public FormulaBuilderControl(string columnName, AppManager appManager)
         {
             InitializeComponent();
             _columnName = columnName;
             _appManager = appManager;
         }
+
         private void FormulaBuilderControl_Loaded(object sender, RoutedEventArgs e)
         {
             LoadComboBox();
         }
+
         private void CancelFormulaButton_Click(object sender, RoutedEventArgs e)
         {
             Window.GetWindow(this)?.Close();
         }
+
         private void SaveFormulaButton_Click(object sender, RoutedEventArgs e)
         {
             string formula = GetFormula();
             _appManager.ApplyFormulaToColumn(_columnName, formula);
             Window.GetWindow(this)?.Close();
         }
+
         private List<ColumnReference> GetColumns()
         {
             _columns = [.. _appManager.GetDataColumns()
@@ -50,6 +55,7 @@ namespace FileMappingEngine.Views
 
             return _columns;
         }
+
         private void LoadComboBox()
         {
             _columns = GetColumns();
@@ -60,6 +66,7 @@ namespace FileMappingEngine.Views
                 ColumnSelectorComboBox.SelectedValuePath = "Id";
             }
         }
+
         private void SelectedColumnChanged(object sender, SelectionChangedEventArgs e)
         {
             if (ColumnSelectorComboBox.SelectedItem is ColumnReference selectedColumn)
@@ -69,10 +76,7 @@ namespace FileMappingEngine.Views
                 ColumnSelectorComboBox.SelectedItem = null;
             }
         }
-        private void FormulaTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            //string formula = FormulaTextBox.Text;
-        }
+        
         private void InsertFormulaText(string text)
         {
             int caret = FormulaTextBox.CaretIndex;
@@ -84,6 +88,7 @@ namespace FileMappingEngine.Views
 
             FormulaTextBox.Focus();
         }
+
         private string GetFormula()
         {
             string formula = FormulaTextBox.Text.Trim();

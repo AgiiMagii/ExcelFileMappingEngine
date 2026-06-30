@@ -219,8 +219,6 @@ namespace FileMappingEngine
             if (sender is not DataGridColumnHeader header)
                 return;
 
-            //string columnName = header.Content?.ToString() ?? "";
-
             if (_selectedColumns.Count > 1)
             {
                 header.ContextMenu = CreateColumnHeaderContextMenuMulti(_selectedColumns);
@@ -466,6 +464,7 @@ namespace FileMappingEngine
 
             ChangeDataTypeOverlay.Visibility = Visibility.Collapsed;
         }
+
         private static Type GetSystemType(DataType dataType)
         {
             return dataType switch

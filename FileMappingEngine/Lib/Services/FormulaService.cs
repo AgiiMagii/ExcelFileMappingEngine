@@ -117,7 +117,7 @@ namespace FileMappingEngine.Lib.Services
 
             return tokens;
         }
-
+        // Parse saņem sarakstu ar FormulaToken objektiem un atgriež saknes FormulaNode objektu, kas reprezentē izteiksmes koku.
         public FormulaNode Parse(List<FormulaToken> tokens)
         {
             _tokens = tokens;
@@ -125,7 +125,7 @@ namespace FileMappingEngine.Lib.Services
 
             return ParseExpression();
         }
-
+        // ParseExpression atgriež FormulaNode objektu, kas reprezentē izteiksmes koku, kurā tiek apstrādāti operatori + un -.
         private FormulaNode ParseExpression()
         {
             var left = ParseTerm();
@@ -153,7 +153,7 @@ namespace FileMappingEngine.Lib.Services
 
             return left;
         }
-
+        // ParseTerm atgriež FormulaNode objektu, kas reprezentē izteiksmes koku, kurā tiek apstrādāti operatori * un /.
         private FormulaNode ParseTerm()
         {
             FormulaNode left = ParseFactor();
@@ -184,6 +184,7 @@ namespace FileMappingEngine.Lib.Services
 
             return left;
         }
+        // ParseFactor atgriež FormulaNode objektu, kas reprezentē izteiksmes koku, kurā tiek apstrādāti skaitļi, kolonnas, funkcijas un iekavas.
         private FormulaNode ParseFactor()
         {
             var token = _tokens[_position];
@@ -240,6 +241,7 @@ namespace FileMappingEngine.Lib.Services
             throw new Exception(
                 $"Unexpected token {token.Value}");
         }
+        // ParseFunction atgriež FormulaNode objektu, kas reprezentē izteiksmes koku, kurā tiek apstrādātas funkcijas.
         private FormulaNode ParseFunction()
         {
             FormulaToken functionToken = _tokens[_position];
@@ -287,6 +289,7 @@ namespace FileMappingEngine.Lib.Services
 
             return function;
         }
+        // Evaluate saņem saknes FormulaNode objektu un DataRow objektu, un atgriež izteiksmes rezultātu kā double.
         public double Evaluate(FormulaNode node, DataRow row)
         {
             return node.Type switch
@@ -306,6 +309,7 @@ namespace FileMappingEngine.Lib.Services
                                         "Unknown node type"),
             };
         }
+        // EvaluateOperator saņem FormulaNode objektu, kas reprezentē operatoru, un DataRow objektu, un atgriež izteiksmes rezultātu kā double.
         private double EvaluateOperator(FormulaNode node, DataRow row)
         {
             double left =
@@ -332,6 +336,7 @@ namespace FileMappingEngine.Lib.Services
                 _ => throw new Exception()
             };
         }
+        // EvaluateFunction saņem FormulaNode objektu, kas reprezentē funkciju, un DataRow objektu, un atgriež izteiksmes rezultātu kā double.
         private double EvaluateFunction(FormulaNode node, DataRow row)
         {
             return node.Function switch
@@ -342,6 +347,7 @@ namespace FileMappingEngine.Lib.Services
                     $"Unsupported function {node.Function}")
             };
         }
+        // EvaluateRound saņem FormulaNode objektu, kas reprezentē ROUND funkciju, un DataRow objektu, un atgriež izteiksmes rezultātu kā double.
         private double EvaluateRound(FormulaNode node, DataRow row)
         {
             if (node.Arguments.Count != 2)
