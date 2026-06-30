@@ -14,8 +14,15 @@ namespace FileMappingEngine.Lib
 
             return value;
         }
-        public static void SetCellValue(IXLCell cell, object? value)
+        public static void SetCellValue(IXLCell cell, object? value, Type columnType)
         {
+            if (columnType == typeof(string))
+            {
+                cell.Style.NumberFormat.Format = "@";
+                cell.SetValue(value?.ToString() ?? "");
+                return;
+            }
+
             if (value == null || value == DBNull.Value)
             {
                 cell.Value = "";
@@ -24,10 +31,6 @@ namespace FileMappingEngine.Lib
 
             switch (value)
             {
-                case string s:
-                    cell.Value = s;
-                    break;
-
                 case double d:
                     cell.Value = d;
                     break;
@@ -49,7 +52,7 @@ namespace FileMappingEngine.Lib
                     break;
 
                 default:
-                    cell.Value = value.ToString();
+                    cell.SetValue(value.ToString() ?? "");
                     break;
             }
         }

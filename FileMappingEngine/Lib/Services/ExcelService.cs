@@ -39,11 +39,8 @@ namespace FileMappingEngine.Lib.Services
                     Name = columnName,
                     Index = c - 1,
                     ExcelLetter = XLHelper.GetColumnLetterFromNumber(c)
-                    //Format = GetFormat(worksheet.Column(c), null),
-                    //DataType = GetColumnDataType(worksheet.Column(c))
                 });
             }
-
 
             foreach (var row in allRows)
             {
@@ -58,7 +55,6 @@ namespace FileMappingEngine.Lib.Services
 
                 rawData.Rows.Add(dr);
             }
-
 
             return new RawExcelData
             {
@@ -151,7 +147,8 @@ namespace FileMappingEngine.Lib.Services
             foreach (DataRow dr in dt.Rows)
             {
                 for (int c = 0; c < dt.Columns.Count; c++)
-                    DataHelper.SetCellValue(ws.Cell(currentRow, c + 1), dr[c]);
+                    //DataHelper.SetCellValue(ws.Cell(currentRow, c + 1), dr[c]);
+                    DataHelper.SetCellValue(ws.Cell(currentRow, c + 1), dr[c], dt.Columns[c].DataType);
                 currentRow++;
             }
 
@@ -321,20 +318,6 @@ namespace FileMappingEngine.Lib.Services
 
             return typeof(string);
         }
-        //private object GetCellValue(IXLCell cell)
-        //{
-        //    if (cell.IsEmpty())
-        //        return DBNull.Value;
-
-        //    return cell.DataType switch
-        //    {
-        //        XLDataType.Number => cell.GetDouble(),
-        //        XLDataType.DateTime => cell.GetDateTime(),
-        //        XLDataType.Boolean => cell.GetBoolean(),
-        //        XLDataType.Text => cell.GetString(),
-        //        _ => cell.Value.ToString()
-        //    };
-        //}
     }
 }
 
