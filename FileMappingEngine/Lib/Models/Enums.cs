@@ -60,5 +60,12 @@ namespace FileMappingEngine.Lib.Models
             Operator,
             Function
         }
+        public enum DataType
+        {
+            Text,
+            Number,
+            Date,
+            Boolean
+        }
     }
 }

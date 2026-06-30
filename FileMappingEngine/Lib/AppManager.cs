@@ -26,9 +26,8 @@ namespace FileMappingEngine.Lib
 
         // Esošo mappingu pogas jārāda tikai tās, kuras piemērotas konkrētam failam
         // - izveidot pārbaudi, kas nosaka, kuri mappingi atbilst faila struktūrai.
-        private readonly ExcelService excelService = new ExcelService();
-        private readonly MappingService mappingEngine = new MappingService();
-        private readonly FormulaService formulaService = new FormulaService();
+        private readonly MappingService mappingEngine = new();
+        private readonly FormulaService formulaService = new();
         public FileState? CurrentFile { get; private set; }
         public DataTable CurrentData => CurrentFile?.CurrentData ?? throw new InvalidOperationException("No file loaded.");
 
@@ -39,15 +38,14 @@ namespace FileMappingEngine.Lib
             CurrentFile = new FileState
             {
                 FilePath = filePath,
-                FileName = Path.GetFileName(filePath)
+                FileName = Path.GetFileName(filePath),
+                RawData = ExcelService.LoadRawData(filePath)
             };
-
-            CurrentFile.RawData = excelService.LoadRawData(filePath);
 
             if (CurrentFile.RawData?.Data == null)
                 throw new InvalidOperationException("Failed to load data from file.");
 
-            CurrentFile.CurrentData = excelService.BuildDataTable(CurrentFile.RawData.Data, CurrentFile.HeaderRowIndex);
+            CurrentFile.CurrentData = ExcelService.BuildDataTable(CurrentFile.RawData.Data, CurrentFile.HeaderRowIndex);
             CurrentFile.Columns = CurrentFile.RawData.Columns;
 
             return CurrentData;
@@ -62,7 +60,7 @@ namespace FileMappingEngine.Lib
             if (CurrentFile.RawData.Data == null)
                 throw new InvalidOperationException("Raw data table not available.");
             CurrentFile.HeaderRowIndex = newHeaderRow;
-            CurrentFile.CurrentData = excelService.BuildDataTable(CurrentFile.RawData.Data, CurrentFile.HeaderRowIndex);
+            CurrentFile.CurrentData = ExcelService.BuildDataTable(CurrentFile.RawData.Data, CurrentFile.HeaderRowIndex);
         }
 
         public void CloseCurrentFile()
@@ -70,16 +68,16 @@ namespace FileMappingEngine.Lib
             CurrentFile = null;
         }
 
-        public string[] GetExistingMappings()
+        public static string[] GetExistingMappings()
         {
             try
             {
-                return mappingEngine.GetJsonFiles();
+                return MappingService.GetJsonFiles();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error retrieving existing mappings: {ex.Message}");
-                return Array.Empty<string>();
+                return [];
             }
         }
 
@@ -94,7 +92,7 @@ namespace FileMappingEngine.Lib
                 CurrentFile.IgnoredRows?
                 .Select(r => r.ToList())
                 .ToList()
-                ?? new();
+                ?? [];
 
             DataTable dataToSave = CurrentFile.CurrentData.Copy();
 
@@ -103,7 +101,7 @@ namespace FileMappingEngine.Lib
                 dataToSave.Rows.RemoveAt(0);
             }
 
-            excelService.SaveFile(
+            ExcelService.SaveFile(
                 filePath,
                 dataToSave,
                 ignoredRows);
@@ -144,13 +142,13 @@ namespace FileMappingEngine.Lib
             }
         }
 
-        private string AddColumnCore(string direction, string anchorId, string? newName)
+        private string AddColumnCore(string direction, string anchorId, string? newName, Type? dataType = null)
         {
             string newColumnName = newName ?? GenerateColumnName();
 
             int index = CalculateColumnIndex(anchorId, direction);
 
-            CurrentData.Columns.Add(newColumnName);
+            CurrentData.Columns.Add(newColumnName, dataType ?? typeof(object));
             CurrentData.Columns[newColumnName]?.SetOrdinal(index);
 
             return newColumnName;
@@ -239,10 +237,7 @@ namespace FileMappingEngine.Lib
                 throw new InvalidOperationException("Current data not available.");
 
             string json = File.ReadAllText(filePath);
-            var mapping = JsonSerializer.Deserialize<MappingSet>(json);
-
-            if (mapping == null)
-                throw new InvalidOperationException("Failed to deserialize mapping set.");
+            MappingSet mapping = JsonSerializer.Deserialize<MappingSet>(json) ?? throw new InvalidOperationException("Failed to deserialize mapping set.");
             try
             {
                 IsApplyingMapping = true;
@@ -267,29 +262,48 @@ namespace FileMappingEngine.Lib
                 switch (step.ActionType)
                 {
                     case "DeleteColumn":
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing for DeleteColumn action.");
                         RemoveColumnCore(step.ColumnId);
                         break;
                     case "AddColumn":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for AddColumn action.");
                         string anchorId = step.Parameters["AnchorColumnId"].ToString() ?? throw new InvalidOperationException("Anchor column ID missing.");
                         string direction = step.Parameters["Direction"].ToString() ?? throw new InvalidOperationException("Direction missing.");
-                        string? givenName = step.Parameters.ContainsKey("NewName") ? step.Parameters["NewName"].ToString() : null;
-                        AddColumnCore(direction, anchorId, givenName);
+                        string? givenName = step.Parameters.TryGetValue("NewName", out object? value) ? value.ToString() : null;
+                        Type? type = step.Parameters.TryGetValue("DataType", out object? typeValue) ? Type.GetType(typeValue.ToString() ?? "") : null;
+                        AddColumnCore(direction, anchorId, givenName, type);
                         break;
                     case "RenameColumn":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for AddColumn action.");
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing for DeleteColumn action.");
                         string newName = step.Parameters["NewName"].ToString() ?? throw new InvalidOperationException("New name missing.");
                         RenameColumnCore(step.ColumnId, newName);
                         break;
                     case "MergeColumns":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for AddColumn action.");
                         string firstColumnName = step.Parameters["FirstColumn"].ToString() ?? throw new InvalidOperationException("First column name missing.");
                         string secondColumnName = step.Parameters["SecondColumn"].ToString() ?? throw new InvalidOperationException("Second column name missing.");
                         string separator = step.Parameters["Separator"].ToString() ?? throw new InvalidOperationException("Separator missing.");
                         MergeColumns(new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, step.ColumnId);
                         break;
                     case "Sort":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for AddColumn action.");
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing for DeleteColumn action.");
                         bool ascending = ((JsonElement)step.Parameters["Ascending"]).GetBoolean();
                         SortDataCore(step.ColumnId, ascending);
                         break;
                     case "Formula":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for AddColumn action.");
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing for DeleteColumn action.");
                         string formula = step.Parameters["Formula"].ToString() ?? throw new InvalidOperationException("Formula missing.");
                         ApplyFormulaToColumnCore(step.ColumnId, formula);
                         break;
@@ -308,7 +322,7 @@ namespace FileMappingEngine.Lib
                 throw new InvalidOperationException("Raw data not loaded.");
             if (CurrentFile.RawData.Data == null)
                 throw new InvalidOperationException("Raw data table not available.");
-            CurrentFile.CurrentData = excelService.BuildDataTable(CurrentFile.RawData.Data, CurrentFile.HeaderRowIndex);
+            CurrentFile.CurrentData = ExcelService.BuildDataTable(CurrentFile.RawData.Data, CurrentFile.HeaderRowIndex);
             mappingEngine.ClearSteps();
         }
 
@@ -385,15 +399,14 @@ namespace FileMappingEngine.Lib
             if (CurrentData == null)
                 throw new InvalidOperationException("Current data not available.");
 
-            return CurrentData.Columns
+            return [.. CurrentData.Columns
                 .Cast<DataColumn>()
                 .Select((col, index) => new ColumnReference
                 {
                     Id = col.ColumnName,
                     Name = col.ColumnName,
                     Index = index
-                })
-                .ToList();
+                })];
         }
 
         public void SortData(string columnName, bool ascending)
@@ -454,7 +467,7 @@ namespace FileMappingEngine.Lib
             var tokenizer = new FormulaService();
 
 
-            var tokens = tokenizer.Tokenize(formula);
+            var tokens = FormulaService.Tokenize(formula);
 
 
             var formulaTree = tokenizer.Parse(tokens);
@@ -476,5 +489,99 @@ namespace FileMappingEngine.Lib
                 row[targetColumn] = result;
             }
         }
+
+        public void SetColumnDataType(string columnName, Type dataType)
+        {
+            if (CurrentFile == null)
+                throw new InvalidOperationException("No file loaded.");
+            if (!CurrentData.Columns.Contains(columnName))
+                throw new ArgumentException($"Column '{columnName}' does not exist.");
+
+            SavePreviousState();
+
+            SetColumnDataTypeCore(columnName, dataType);
+
+            if (!IsApplyingMapping)
+            {
+                mappingEngine.AddSetColumnDataTypeStep(columnName, dataType);
+            }
+        }
+        private void SetColumnDataTypeCore(string columnName, Type dataType)
+        {
+            if (!CurrentData.Columns.Contains(columnName))
+                throw new ArgumentException($"Column '{columnName}' does not exist.");
+
+            DataColumn oldColumn = CurrentData.Columns[columnName]!;
+            int ordinal = oldColumn.Ordinal;
+
+            // Izveido jaunu kolonnu ar vajadzīgo datu tipu
+            DataColumn newColumn = new(columnName + "_tmp", dataType);
+
+            CurrentData.Columns.Add(newColumn);
+
+            // Pārkopē un konvertē datus
+            foreach (DataRow row in CurrentData.Rows)
+            {
+                object value = row[oldColumn];
+
+                if (value == DBNull.Value)
+                {
+                    row[newColumn] = DBNull.Value;
+                    continue;
+                }
+
+                try
+                {
+                    row[newColumn] = Convert.ChangeType(value, dataType);
+                }
+                catch (InvalidCastException)
+                {
+                    row[newColumn] = DBNull.Value;
+                }
+                catch (FormatException)
+                {
+                    row[newColumn] = DBNull.Value;
+                }
+                catch (OverflowException)
+                {
+                    row[newColumn] = DBNull.Value;
+                }
+            }
+
+            // Noņem veco kolonnu
+            CurrentData.Columns.Remove(oldColumn);
+
+            // Pārsauc jauno kolonnu un atgriež sākotnējā vietā
+            newColumn.ColumnName = columnName;
+            newColumn.SetOrdinal(ordinal);
+        }
+        //private void SetColumnDataTypeCore(string columnName, Type dataType)
+        //{
+        //    if (!CurrentData.Columns.Contains(columnName))
+        //        throw new ArgumentException($"Column '{columnName}' does not exist.");
+
+        //    DataColumn? column = CurrentData.Columns[columnName];
+        //    int? ordinal = column?.Ordinal;
+
+        //    DataColumn newColumn = new DataColumn(columnName + "_tmp", dataType);
+
+        //    CurrentData.Columns.Add(newColumn);
+
+        //    foreach (DataRow row in CurrentData.Rows)
+        //    {
+        //        object? value = row[columnName];
+        //        try
+        //        {
+        //            row[newColumn.ColumnName] = Convert.ChangeType(value, dataType);
+        //        }
+        //        catch
+        //        {
+        //            row[newColumn.ColumnName] = DBNull.Value;
+        //        }
+        //    }
+        //    CurrentData.Columns.Remove(columnName);
+        //    newColumn.ColumnName = columnName;
+        //    newColumn.SetOrdinal(ordinal ?? CurrentData.Columns.Count - 1);
+        //}
     }
 }

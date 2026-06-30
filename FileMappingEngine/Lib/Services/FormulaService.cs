@@ -11,7 +11,7 @@ namespace FileMappingEngine.Lib.Services
 {
     public class FormulaService
     {
-        private List<FormulaToken> _tokens = new();
+        private List<FormulaToken> _tokens = [];
 
         private int _position;
 
@@ -24,7 +24,7 @@ namespace FileMappingEngine.Lib.Services
         }
 
         // Tokenize saņem string, un atgriež sarakstu ar FormulaToken objektiem, kas satur informāciju par katru tokenu (tipu un vērtību).
-        public List<FormulaToken> Tokenize(string formula)
+        public static List<FormulaToken> Tokenize(string formula)
         {
             var tokens = new List<FormulaToken>();
 
@@ -41,7 +41,7 @@ namespace FileMappingEngine.Lib.Services
                 string value = match.Value;
 
 
-                if (value.StartsWith("["))
+                if (value.StartsWith('['))
                 {
                     tokens.Add(new FormulaToken
                     {
@@ -289,39 +289,22 @@ namespace FileMappingEngine.Lib.Services
         }
         public double Evaluate(FormulaNode node, DataRow row)
         {
-            switch (node.Type)
+            return node.Type switch
             {
-                case FormulaNodeType.Constant:
-
-                    return double.Parse(
-                        node.Value!,
-                        CultureInfo.InvariantCulture);
-
-
-                case FormulaNodeType.Column:
-
-                    return Convert.ToDouble(
-                        row[node.Value!]);
-
-
-                case FormulaNodeType.Operator:
-
-                    return EvaluateOperator(
-                        node,
-                        row);
-
-
-                case FormulaNodeType.Function:
-
-                    return EvaluateFunction(
-                        node,
-                        row);
-
-
-                default:
-                    throw new Exception(
-                        "Unknown node type");
-            }
+                FormulaNodeType.Constant => double.Parse(
+                                        node.Value!,
+                                        CultureInfo.InvariantCulture),
+                FormulaNodeType.Column => Convert.ToDouble(
+                                        row[node.Value!]),
+                FormulaNodeType.Operator => EvaluateOperator(
+                                        node,
+                                        row),
+                FormulaNodeType.Function => EvaluateFunction(
+                                        node,
+                                        row),
+                _ => throw new Exception(
+                                        "Unknown node type"),
+            };
         }
         private double EvaluateOperator(FormulaNode node, DataRow row)
         {

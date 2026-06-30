@@ -12,15 +12,15 @@
             <StackPanel x:Name="mappingPanel" Width="80"/>
             <ToolBar DockPanel.Dock="Top" Height="41" Padding="5">
                 <TextBox Name="txtFilePath" HorizontalAlignment="Left" TextWrapping="Wrap" Text="Choose File" VerticalAlignment="Top" Width="200"/>
-                <Button Name="chooseFileButton" Content="Open File" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,0,20,0" Click="chooseFileButton_Click"/>
+                <Button Name="ChooseFileButton" Content="Open File" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,0,20,0" Click="ChooseFileButton_Click"/>
                 <StackPanel Name="headerRowPanel" Orientation="Horizontal" VerticalAlignment="Top" IsEnabled="False">
                     <Label Content="Header row"/>
-                    <ComboBox Name="cbHeaderRow" Margin="5,0,0,0" Width="40" SelectionChanged="cbHeaderRow_SelectionChanged"/>
+                    <ComboBox Name="CbHeaderRow" Margin="5,0,0,0" Width="40" SelectionChanged="CbHeaderRow_SelectionChanged"/>
                 </StackPanel>
-                <Button Name="saveFileButton" Content="Save File" VerticalAlignment="Top" Margin="20,0,20,0" Click="saveFileButton_Click"/>
-                <Button Name="saveMapping" Content="Save new mapping set" VerticalAlignment="Top" Margin="20,0,20,0" Click="SaveMappingSet_Click"/>
-                <Button Name="resetTable" Content="Reset Table" VerticalAlignment="Top" Margin="20,0,20,0" Click="ResetTable_Click"/>
-                <Button Name="undo" Content="Undo" VerticalAlignment="Top" Margin="20,0,20,0" Click="Undo_Click"/>
+                <Button Name="SaveFileButton" Content="Save File" VerticalAlignment="Top" Margin="20,0,20,0" Click="SaveFileButton_Click"/>
+                <Button Name="SaveMapping" Content="Save new mapping set" VerticalAlignment="Top" Margin="20,0,20,0" Click="SaveMappingSet_Click"/>
+                <Button Name="ResetTable" Content="Reset Table" VerticalAlignment="Top" Margin="20,0,20,0" Click="ResetTable_Click"/>
+                <Button Name="Undo" Content="Undo" VerticalAlignment="Top" Margin="20,0,20,0" Click="Undo_Click"/>
 
             </ToolBar>
             <Grid>
@@ -28,8 +28,8 @@
                   AutoGenerateColumns="True"
                   HeadersVisibility="Column"
                   Margin="5"
-                  Sorting="dataGrid_Sorting"
-                  AutoGeneratingColumn="dataGrid_AutoGeneratingColumn"/>
+                  Sorting="DataGrid_Sorting"
+                  AutoGeneratingColumn="DataGrid_AutoGeneratingColumn"/>
             </Grid>
         </DockPanel>
         <Grid x:Name="RenameColumnOverlay"
@@ -165,6 +165,81 @@
                         Width="100"
                         Margin="5"
                         Click="CancelMergeColumns_Click"/>
+
+                    </StackPanel>
+
+                </StackPanel>
+
+            </Border>
+
+        </Grid>
+        <Grid x:Name="ChangeDataTypeOverlay"
+      Background="#AA000000"
+      Visibility="Collapsed">
+
+            <Border HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Padding="30"
+            Background="White"
+            Width="450">
+
+                <StackPanel>
+
+                    <!-- Virsraksts -->
+                    <TextBlock Text="Change Data Type"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       Margin="0,0,0,20"
+                       HorizontalAlignment="Center"/>
+
+
+                    <!-- Kolonna -->
+                    <TextBlock Text="Column:"
+                       Margin="0,0,0,5"/>
+
+                    <TextBlock x:Name="txtDataTypeColumn"
+                        Text=""
+                        Margin="0,0,0,5"/>
+
+
+                    <!-- Data tips -->
+                    <TextBlock Text="New data type:"
+                       Margin="0,0,0,5"/>
+
+                    <ComboBox x:Name="cmbDataType"
+                      Height="30"
+                      Margin="0,0,0,15"/>
+
+
+                    <!-- Brīdinājums -->
+                    <TextBlock x:Name="txtDataTypeWarning"
+                       Text="Changing data type may affect existing values."
+                       Foreground="DarkOrange"
+                       Visibility="Collapsed"
+                       Margin="0,0,0,15"/>
+
+
+                    <!-- Validācija -->
+                    <TextBlock x:Name="txtDataTypeValidation"
+                       Foreground="Red"
+                       Visibility="Collapsed"
+                       Margin="0,0,0,15"/>
+
+
+                    <!-- Pogas -->
+                    <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center">
+
+                        <Button Content="Save"
+                        Width="100"
+                        Margin="5"
+                        Click="SaveDataType_Click"/>
+
+
+                        <Button Content="Cancel"
+                        Width="100"
+                        Margin="5"
+                        Click="CancelDataType_Click"/>
 
                     </StackPanel>
 

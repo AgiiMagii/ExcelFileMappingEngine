@@ -12,10 +12,10 @@ namespace FileMappingEngine.Lib.Services
 {
     public class MappingService
     {
-        private readonly List<ActionStep> steps = new List<ActionStep>();
-        private readonly List<ActionStep> previousSteps = new List<ActionStep>();
+        private readonly List<ActionStep> steps = [];
+        private readonly List<ActionStep> previousSteps = [];
 
-        public string[] GetJsonFiles()
+        public static string[] GetJsonFiles()
         {
             string folderPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MappingSets");
             if (!Directory.Exists(folderPath))
@@ -63,7 +63,7 @@ namespace FileMappingEngine.Lib.Services
 
         public MappingSet GenerateMappingSet(string fileName, int headerRow)
         {
-            MappingSet mapping = new MappingSet
+            MappingSet mapping = new()
             {
                 Name = fileName,
                 HeaderRow = headerRow,
@@ -131,6 +131,20 @@ namespace FileMappingEngine.Lib.Services
                 Parameters = new Dictionary<string, object>
                 {
                     ["Formula"] = formula
+                }
+            });
+        }
+
+        public void AddSetColumnDataTypeStep(string columnName, Type dataType)
+        {
+            steps.Add(new ActionStep
+            {
+                ActionType = "SetColumnDataType",
+                ColumnId = columnName,
+                Order = steps.Count + 1,
+                Parameters = new Dictionary<string, object>
+                {
+                    ["DataType"] = dataType
                 }
             });
         }

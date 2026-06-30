@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using static FileMappingEngine.Lib.Models.Enums;
 
 namespace FileMappingEngine
 {
@@ -16,9 +17,9 @@ namespace FileMappingEngine
     /// </summary>
     public partial class MainWindow : Window
     {
-        AppManager appManager = new AppManager();
-        UiHelper helper = new UiHelper();
-        private readonly HashSet<string> _selectedColumns = new();
+        private readonly AppManager appManager = new();
+        private readonly UiHelper helper = new();
+        private readonly HashSet<string> _selectedColumns = [];
         private bool _isFirstLoad = false;
         private string? _oldColumnName;
         public MainWindow()
@@ -54,10 +55,10 @@ namespace FileMappingEngine
 
         private void LoadComboBox()
         {
-            cbHeaderRow.Items.Clear();
+            CbHeaderRow.Items.Clear();
             for (int i = 1; i <= appManager.CurrentData.Rows.Count; i++)
             {
-                cbHeaderRow.Items.Add(i);
+                CbHeaderRow.Items.Add(i);
             }
 
         }
@@ -66,9 +67,9 @@ namespace FileMappingEngine
         {
             mappingPanel.Children.Clear();
 
-            foreach (string mappingPath in appManager.GetExistingMappings())
+            foreach (string mappingPath in AppManager.GetExistingMappings())
             {
-                Button button = new Button
+                Button button = new()
                 {
                     Content = System.IO.Path.GetFileNameWithoutExtension(mappingPath),
                     Tag = mappingPath,
@@ -102,7 +103,7 @@ namespace FileMappingEngine
             ReloadGrid();
         }
 
-        private void chooseFileButton_Click(object sender, RoutedEventArgs e)
+        private void ChooseFileButton_Click(object sender, RoutedEventArgs e)
         {
             if (appManager.CurrentFile?.CurrentData != null && appManager.CurrentData.Rows.Count > 0)
             {
@@ -119,8 +120,10 @@ namespace FileMappingEngine
                 appManager.CloseCurrentFile();
             }
 
-            OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "Excel Files|*.xlsx;*.xls";
+            OpenFileDialog ofd = new()
+            {
+                Filter = "Excel Files|*.xlsx;*.xls"
+            };
 
             if (ofd.ShowDialog() == true)
             {
@@ -132,25 +135,27 @@ namespace FileMappingEngine
             }
         }
 
-        private void cbHeaderRow_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void CbHeaderRow_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (cbHeaderRow.SelectedIndex >= 0 && appManager.CurrentFile != null && appManager.CurrentFile.FileName != null)
+            if (CbHeaderRow.SelectedIndex >= 0 && appManager.CurrentFile != null && appManager.CurrentFile.FileName != null)
             {
-                int headerRowIndex = cbHeaderRow.SelectedIndex + 1;
+                int headerRowIndex = CbHeaderRow.SelectedIndex + 1;
 
                 appManager.UpdateHeaderRow(headerRowIndex);
                 ReloadGrid();
             }
         }
 
-        private void saveFileButton_Click(object sender, RoutedEventArgs e)
+        private void SaveFileButton_Click(object sender, RoutedEventArgs e)
         {
             if (appManager.CurrentFile == null)
                 return;
 
-            SaveFileDialog sfd = new SaveFileDialog();
-            sfd.Filter = "Excel Files|*.xlsx;*.xls";
-            sfd.FileName = appManager.CurrentFile.FileName;
+            SaveFileDialog sfd = new()
+            {
+                Filter = "Excel Files|*.xlsx;*.xls",
+                FileName = appManager.CurrentFile.FileName
+            };
 
             if (sfd.ShowDialog() == true)
             {
@@ -172,7 +177,7 @@ namespace FileMappingEngine
             SaveMappingSetToJson();
         }
 
-        private void dataGrid_Sorting(object sender, DataGridSortingEventArgs e)
+        private void DataGrid_Sorting(object sender, DataGridSortingEventArgs e)
         {
             string columnName = e.Column.Header.ToString() ?? "";
 
@@ -200,10 +205,10 @@ namespace FileMappingEngine
             }
         }
 
-        private void dataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+        private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
             DataGridColumn column = e.Column;
-            System.Windows.Style style = new System.Windows.Style(typeof(DataGridColumnHeader));
+            System.Windows.Style style = new(typeof(DataGridColumnHeader));
 
             style.Setters.Add(new EventSetter(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler(ColumnHeader_PreviewMouseLeftButtonDown)));
             style.Setters.Add(new EventSetter(ContextMenuOpeningEvent, new ContextMenuEventHandler(ColumnHeader_ContextMenuOpening)));
@@ -214,7 +219,7 @@ namespace FileMappingEngine
             if (sender is not DataGridColumnHeader header)
                 return;
 
-            string columnName = header.Content?.ToString() ?? "";
+            //string columnName = header.Content?.ToString() ?? "";
 
             if (_selectedColumns.Count > 1)
             {
@@ -241,9 +246,7 @@ namespace FileMappingEngine
 
             if (ctrlPressed)
             {
-                if (_selectedColumns.Contains(columnName))
-                    _selectedColumns.Remove(columnName);
-                else
+                if (!_selectedColumns.Remove(columnName))
                     _selectedColumns.Add(columnName);
 
                 helper.UpdateSelectedColumnHeaders(
@@ -264,20 +267,20 @@ namespace FileMappingEngine
 
         private ContextMenu CreateColumnHeaderContextMenuSingle(DataGridColumn column)
         {
-            ContextMenu menu = new ContextMenu();
+            ContextMenu menu = new();
 
             // Remove Column
-            MenuItem removeItem = new MenuItem { Header = "Remove Column", Tag = column };
+            MenuItem removeItem = new() { Header = "Remove Column", Tag = column };
             removeItem.Click += RemoveColumnMenuItem_Click;
             menu.Items.Add(removeItem);
 
             // Add Column right
-            MenuItem addItemRight = new MenuItem { Header = "Add Column / Right", Tag = column };
+            MenuItem addItemRight = new() { Header = "Add Column / Right", Tag = column };
             addItemRight.Click += AddColumnMenuItem_Click;
             menu.Items.Add(addItemRight);
 
             // Add Column left
-            MenuItem addItemLeft = new MenuItem { Header = "Add Column / Left", Tag = column };
+            MenuItem addItemLeft = new() { Header = "Add Column / Left", Tag = column };
             addItemLeft.Click += AddColumnMenuItem_Click;
             menu.Items.Add(addItemLeft);
 
@@ -286,20 +289,20 @@ namespace FileMappingEngine
             //menu.Items.Add(hideItem);
 
             // Rename Column
-            MenuItem renameCol = new MenuItem { Header = "Rename Column", Tag = column };
+            MenuItem renameCol = new() { Header = "Rename Column", Tag = column };
             renameCol.Click += RenameColumnMenuItem_Click;
             menu.Items.Add(renameCol);
 
             // Set Data Type
-            MenuItem setFormat = new MenuItem { Header = "Set Data Type", Tag = column };
+            MenuItem setFormat = new() { Header = "Set Data Type", Tag = column };
             setFormat.Click += SetDataTypeMenuItem_Click;
             menu.Items.Add(setFormat);
 
-            MenuItem concat = new MenuItem { Header = "Merge columns", Tag = column };
+            MenuItem concat = new() { Header = "Merge columns", Tag = column };
             concat.Click += ConcatColumnsMenuItem_Click;
             menu.Items.Add(concat);
 
-            MenuItem writeFormula = new MenuItem { Header = "Formula", Tag = column };
+            MenuItem writeFormula = new() { Header = "Formula", Tag = column };
             writeFormula.Click += WriteFormulaMenuItem_Click;
             menu.Items.Add(writeFormula);
 
@@ -310,10 +313,10 @@ namespace FileMappingEngine
 
         private ContextMenu CreateColumnHeaderContextMenuMulti(HashSet<string> columns)
         {
-            ContextMenu menu = new ContextMenu();
+            ContextMenu menu = new();
 
             // Remove Column
-            MenuItem removeItem = new MenuItem { Header = "Remove Column", Tag = columns };
+            MenuItem removeItem = new () { Header = "Remove Column", Tag = columns };
             removeItem.Click += RemoveColumnMenuItems_Click;
             menu.Items.Add(removeItem);
 
@@ -432,7 +435,53 @@ namespace FileMappingEngine
 
         private void SetDataTypeMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
+                return;
+            string? columnName = column.Header?.ToString();
 
+            if (string.IsNullOrWhiteSpace(columnName))
+                return;
+
+            LoadComboForDataTypeOverlay();
+            txtDataTypeColumn.Text = columnName;
+            ChangeDataTypeOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void SaveDataType_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button)
+                return;
+
+            if (cmbDataType.SelectedItem is not DataType selectedDataType)
+                return;
+
+            string? columnName = txtDataTypeColumn.Text;
+
+            if (string.IsNullOrWhiteSpace(columnName))
+                return;
+
+            Type systemType = GetSystemType(selectedDataType);
+
+            appManager.SetColumnDataType(columnName, systemType);
+
+            ChangeDataTypeOverlay.Visibility = Visibility.Collapsed;
+        }
+        private static Type GetSystemType(DataType dataType)
+        {
+            return dataType switch
+            {
+                DataType.Text => typeof(string),
+                DataType.Number => typeof(double),
+                DataType.Date => typeof(DateTime),
+                DataType.Boolean => typeof(bool),
+
+                _ => typeof(object)
+            };
+        }
+
+        private void CancelDataType_Click(object sender, RoutedEventArgs e)
+        {
+            ChangeDataTypeOverlay.Visibility = Visibility.Collapsed;
         }
 
         private void ConcatColumnsMenuItem_Click(object sender, RoutedEventArgs e)
@@ -450,7 +499,7 @@ namespace FileMappingEngine
 
         private void LoadCombosForMergeOverlay()
         {
-            List<ColumnReference> columns = appManager.GetDataColumns() ?? new List<ColumnReference>();
+            List<ColumnReference> columns = appManager.GetDataColumns() ?? [];
 
             cmbMergeColumn1.ItemsSource = columns;
             cmbMergeColumn2.ItemsSource = columns;
@@ -459,15 +508,15 @@ namespace FileMappingEngine
             cmbMergeColumn2.DisplayMemberPath = "Name";
         }
 
+        private void LoadComboForDataTypeOverlay()
+        {
+            cmbDataType.ItemsSource = Enum.GetValues<DataType>();
+            cmbDataType.SelectedIndex = -1;
+        }
+
         private void SaveMergeColumns_Click(object sender, RoutedEventArgs e)
         {
-            ColumnReference? first =
-                cmbMergeColumn1.SelectedItem as ColumnReference;
-
-            ColumnReference? second =
-                cmbMergeColumn2.SelectedItem as ColumnReference;
-
-            if (first == null || second == null)
+            if (cmbMergeColumn1.SelectedItem is not ColumnReference first || cmbMergeColumn2.SelectedItem is not ColumnReference second)
                 return;
 
             string separator = txtMergeSeparator.Text;
@@ -488,7 +537,7 @@ namespace FileMappingEngine
                 return;
 
             FormulaBuilderControl formulaBuilder = new(columnName, appManager);
-            Window dialog = new Window
+            Window dialog = new()
             {
                 Content = formulaBuilder,
                 Title = "Formula Builder",

@@ -16,12 +16,12 @@ namespace FileMappingEngine.Lib.Services
     {
         public List<string[]>? IgnoredRows { get; private set; }
 
-        public RawExcelData LoadRawData(string filePath)
+        public static RawExcelData LoadRawData(string filePath)
         {
-            DataTable rawData = new DataTable();
-            List<ColumnReference> columns = new();
+            DataTable rawData = new();
+            List<ColumnReference> columns = [];
 
-            using XLWorkbook workbook = new XLWorkbook(filePath);
+            using XLWorkbook workbook = new(filePath);
             IXLWorksheet worksheet = workbook.Worksheet(1);
 
             int maxCol = worksheet.LastCellUsed().Address.ColumnNumber;
@@ -66,9 +66,9 @@ namespace FileMappingEngine.Lib.Services
                 Columns = columns
             };
         }
-        public DataTable BuildDataTable(DataTable rawData, int headerRowIndex = 1)
+        public static DataTable BuildDataTable(DataTable rawData, int headerRowIndex = 1)
         {
-            DataTable dataTable = new DataTable();
+            DataTable dataTable = new();
 
             int headerIndex = headerRowIndex - 1;
 
@@ -78,7 +78,7 @@ namespace FileMappingEngine.Lib.Services
             // Header rinda
             DataRow headerRow = rawData.Rows[headerIndex];
 
-            HashSet<string> usedNames = new();
+            HashSet<string> usedNames = [];
 
             for (int c = 0; c < rawData.Columns.Count; c++)
             {
@@ -86,7 +86,6 @@ namespace FileMappingEngine.Lib.Services
 
                 string colName =
                     GetSafeColumnName(
-                        dataTable,
                         rawName,
                         c + 1,
                         usedNames);
@@ -109,7 +108,7 @@ namespace FileMappingEngine.Lib.Services
             return dataTable;
         }
 
-        private string GetSafeColumnName(DataTable dt, string rawName, int index, HashSet<string> usedNames)
+        private static string GetSafeColumnName(string rawName, int index, HashSet<string> usedNames)
         {
             if (string.IsNullOrWhiteSpace(rawName))
                 rawName = "Column" + index;
@@ -131,9 +130,9 @@ namespace FileMappingEngine.Lib.Services
             
         }
 
-        public void SaveFile(string filePath, DataTable dt, List<List<string>> ignoredRows)
+        public static void SaveFile(string filePath, DataTable dt, List<List<string>> ignoredRows)
         {
-            using XLWorkbook workbook = new XLWorkbook();
+            using XLWorkbook workbook = new();
             var ws = workbook.Worksheets.Add("Sheet1");
 
             int currentRow = 1;
@@ -158,7 +157,7 @@ namespace FileMappingEngine.Lib.Services
 
             workbook.SaveAs(filePath);
         }
-        private object GetCellValue(IXLCell cell)
+        private static object GetCellValue(IXLCell cell)
         {
             if (cell.IsEmpty())
                 return DBNull.Value;
@@ -172,7 +171,7 @@ namespace FileMappingEngine.Lib.Services
                 _ => DBNull.Value
             };
         }
-        private ColumnFormat GetFormat(IXLColumn? column, IXLCell? cell)
+        private static ColumnFormat GetFormat(IXLColumn? column, IXLCell? cell)
         {
             if (column == null && cell == null)
                 return ColumnFormat.General;
@@ -239,13 +238,13 @@ namespace FileMappingEngine.Lib.Services
 
             format = format.ToUpperInvariant();
 
-            if (format.Contains("%"))
+            if (format.Contains('%'))
                 return ColumnFormat.Percentage;
 
-            if (format.Contains("€") ||
-                format.Contains("$") ||
-                format.Contains("£") ||
-                format.Contains("¥"))
+            if (format.Contains('€') ||
+                format.Contains('$') ||
+                format.Contains('£') ||
+                format.Contains('¥'))
                 return ColumnFormat.Currency;
 
             if (format.Contains("E+"))
@@ -254,7 +253,7 @@ namespace FileMappingEngine.Lib.Services
             if (format.Contains("?/?"))
                 return ColumnFormat.Fraction;
 
-            if (format.Contains("@"))
+            if (format.Contains('@'))
                 return ColumnFormat.Text;
 
             if (format.Contains("DD") ||
@@ -271,7 +270,7 @@ namespace FileMappingEngine.Lib.Services
 
             return ColumnFormat.Custom;
         }
-        private Type GetColumnDataType(IXLColumn column)
+        private static Type GetColumnDataType(IXLColumn column)
         {
             bool hasNumber = false;
             bool hasDate = false;

@@ -45,9 +45,8 @@ namespace FileMappingEngine.Views
         }
         private List<ColumnReference> GetColumns()
         {
-            _columns = _appManager.GetDataColumns()
-            .Where(c => c.Id != _columnName)
-            .ToList();
+            _columns = [.. _appManager.GetDataColumns()
+            .Where(c => c.Id != _columnName)];
 
             return _columns;
         }
@@ -72,7 +71,7 @@ namespace FileMappingEngine.Views
         }
         private void FormulaTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            string formula = FormulaTextBox.Text;
+            //string formula = FormulaTextBox.Text;
         }
         private void InsertFormulaText(string text)
         {
@@ -89,8 +88,8 @@ namespace FileMappingEngine.Views
         {
             string formula = FormulaTextBox.Text.Trim();
 
-            if (!formula.StartsWith("="))
-                formula = "=" + formula;
+            if (!formula.StartsWith('='))
+                formula = '=' + formula;
 
             return formula;
         }
