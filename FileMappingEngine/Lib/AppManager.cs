@@ -96,10 +96,10 @@ namespace FileMappingEngine.Lib
 
             DataTable dataToSave = CurrentFile.CurrentData.Copy();
 
-            for (int i = 0; i < CurrentFile.HeaderRowIndex - 1; i++)
-            {
-                dataToSave.Rows.RemoveAt(0);
-            }
+            //for (int i = 0; i < CurrentFile.HeaderRowIndex - 1; i++)
+            //{
+            //    dataToSave.Rows.RemoveAt(0);
+            //}
 
             ExcelService.SaveFile(
                 filePath,
