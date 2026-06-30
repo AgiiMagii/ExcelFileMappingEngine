@@ -10,7 +10,7 @@ using System.Windows.Media;
 
 namespace FileMappingEngine.Lib
 {
-    class Helper
+    class UiHelper
     {
         private bool _isUpdating = false;
         public void ReloadDataGrid(DataGrid dataGrid, DataTable dt)

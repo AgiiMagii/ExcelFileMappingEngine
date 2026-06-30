@@ -14,5 +14,6 @@ namespace FileMappingEngine.Lib.Models
         public string? ExcelLetter { get; set; }
 
         public ColumnFormat Format { get; set; } = ColumnFormat.Text;
+        public Type DataType { get; set; } = typeof(string);
     }
 }

@@ -17,7 +17,7 @@ namespace FileMappingEngine
     public partial class MainWindow : Window
     {
         AppManager appManager = new AppManager();
-        Helper helper = new Helper();
+        UiHelper helper = new UiHelper();
         private readonly HashSet<string> _selectedColumns = new();
         private bool _isFirstLoad = false;
         private string? _oldColumnName;

@@ -1,4 +1,5 @@
-﻿using ClosedXML.Excel;
+﻿using ClosedXML.Attributes;
+using ClosedXML.Excel;
 using FileMappingEngine.Lib;
 using FileMappingEngine.Lib.Models;
 using System;
@@ -7,6 +8,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Text;
 using System.Text.RegularExpressions;
+using static FileMappingEngine.Lib.Models.Enums;
 
 namespace FileMappingEngine.Lib.Services
 {
@@ -25,12 +27,11 @@ namespace FileMappingEngine.Lib.Services
             int maxCol = worksheet.LastCellUsed().Address.ColumnNumber;
             var allRows = worksheet.RowsUsed().ToList();
 
-            // Izveido tehniskās kolonnas
             for (int c = 1; c <= maxCol; c++)
             {
                 string columnName = $"Column{c}";
 
-                rawData.Columns.Add(columnName);
+                rawData.Columns.Add(columnName, typeof(object));
 
                 columns.Add(new ColumnReference
                 {
@@ -38,10 +39,12 @@ namespace FileMappingEngine.Lib.Services
                     Name = columnName,
                     Index = c - 1,
                     ExcelLetter = XLHelper.GetColumnLetterFromNumber(c)
+                    //Format = GetFormat(worksheet.Column(c), null),
+                    //DataType = GetColumnDataType(worksheet.Column(c))
                 });
             }
 
-            // Ielādē visas rindas
+
             foreach (var row in allRows)
             {
                 DataRow dr = rawData.NewRow();
@@ -49,13 +52,13 @@ namespace FileMappingEngine.Lib.Services
                 for (int c = 1; c <= maxCol; c++)
                 {
                     var cell = row.Cell(c);
-                    dr[c - 1] = cell.Value.IsBlank
-                        ? ""
-                        : cell.Value.ToString();
+
+                    dr[c - 1] = GetCellValue(row.Cell(c));
                 }
 
                 rawData.Rows.Add(dr);
             }
+
 
             return new RawExcelData
             {
@@ -63,7 +66,6 @@ namespace FileMappingEngine.Lib.Services
                 Columns = columns
             };
         }
-
         public DataTable BuildDataTable(DataTable rawData, int headerRowIndex = 1)
         {
             DataTable dataTable = new DataTable();
@@ -89,7 +91,7 @@ namespace FileMappingEngine.Lib.Services
                         c + 1,
                         usedNames);
 
-                dataTable.Columns.Add(colName);
+                dataTable.Columns.Add(colName, rawData.Columns[c].DataType);
             }
 
             // Dati zem header
@@ -150,12 +152,190 @@ namespace FileMappingEngine.Lib.Services
             foreach (DataRow dr in dt.Rows)
             {
                 for (int c = 0; c < dt.Columns.Count; c++)
-                    ws.Cell(currentRow, c + 1).Value = dr[c]?.ToString() ?? "";
+                    DataHelper.SetCellValue(ws.Cell(currentRow, c + 1), dr[c]);
                 currentRow++;
             }
 
             workbook.SaveAs(filePath);
         }
+        private object GetCellValue(IXLCell cell)
+        {
+            if (cell.IsEmpty())
+                return DBNull.Value;
+
+            return cell.DataType switch
+            {
+                XLDataType.Number => cell.GetDouble(),
+                XLDataType.DateTime => cell.GetDateTime(),
+                XLDataType.Boolean => cell.GetBoolean(),
+                XLDataType.Text => cell.GetString(),
+                _ => DBNull.Value
+            };
+        }
+        private ColumnFormat GetFormat(IXLColumn? column, IXLCell? cell)
+        {
+            if (column == null && cell == null)
+                return ColumnFormat.General;
+
+            int id = column?.Style.NumberFormat.NumberFormatId ?? cell?.Style.NumberFormat.NumberFormatId ?? 0;
+            string format = column?.Style.NumberFormat.Format ?? cell?.Style.NumberFormat.Format ?? "";
+
+            switch (id)
+            {
+                case 0:
+                    return ColumnFormat.General;
+
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                    return ColumnFormat.Number;
+
+                case 9:
+                case 10:
+                    return ColumnFormat.Percentage;
+
+                case 11:
+                case 48:
+                    return ColumnFormat.Scientific;
+
+                case 12:
+                case 13:
+                    return ColumnFormat.Fraction;
+
+                case 14:
+                    return ColumnFormat.DateShort;
+
+                case 15:
+                case 16:
+                case 17:
+                    return ColumnFormat.DateLong;
+
+                case 18:
+                case 19:
+                case 20:
+                case 21:
+                case 45:
+                case 46:
+                case 47:
+                    return ColumnFormat.Time;
+
+                case 22:
+                    return ColumnFormat.DateTime;
+
+                case 37:
+                case 38:
+                case 39:
+                case 40:
+                    return ColumnFormat.Accounting;
+
+                case 49:
+                    return ColumnFormat.Text;
+            }
+
+            // Pielāgoti (Custom) formāti
+            if (string.IsNullOrWhiteSpace(format))
+                return ColumnFormat.General;
+
+            format = format.ToUpperInvariant();
+
+            if (format.Contains("%"))
+                return ColumnFormat.Percentage;
+
+            if (format.Contains("€") ||
+                format.Contains("$") ||
+                format.Contains("£") ||
+                format.Contains("¥"))
+                return ColumnFormat.Currency;
+
+            if (format.Contains("E+"))
+                return ColumnFormat.Scientific;
+
+            if (format.Contains("?/?"))
+                return ColumnFormat.Fraction;
+
+            if (format.Contains("@"))
+                return ColumnFormat.Text;
+
+            if (format.Contains("DD") ||
+                format.Contains("MM") ||
+                format.Contains("YY") ||
+                format.Contains("HH") ||
+                format.Contains("SS"))
+            {
+                if (format.Contains("HH"))
+                    return ColumnFormat.DateTime;
+
+                return ColumnFormat.Date;
+            }
+
+            return ColumnFormat.Custom;
+        }
+        private Type GetColumnDataType(IXLColumn column)
+        {
+            bool hasNumber = false;
+            bool hasDate = false;
+            bool hasText = false;
+            bool hasBool = false;
+
+
+            foreach (var cell in column.CellsUsed())
+            {
+                if (cell.IsEmpty())
+                    continue;
+
+
+                switch (cell.DataType)
+                {
+                    case XLDataType.Number:
+                        hasNumber = true;
+                        break;
+
+                    case XLDataType.DateTime:
+                        hasDate = true;
+                        break;
+
+                    case XLDataType.Boolean:
+                        hasBool = true;
+                        break;
+
+                    case XLDataType.Text:
+                        hasText = true;
+                        break;
+                }
+            }
+
+
+            // ja ir teksts, prioritāte tekstam
+            if (hasText)
+                return typeof(string);
+
+            if (hasDate)
+                return typeof(DateTime);
+
+            if (hasNumber)
+                return typeof(double);
+
+            if (hasBool)
+                return typeof(bool);
+
+
+            return typeof(string);
+        }
+        //private object GetCellValue(IXLCell cell)
+        //{
+        //    if (cell.IsEmpty())
+        //        return DBNull.Value;
+
+        //    return cell.DataType switch
+        //    {
+        //        XLDataType.Number => cell.GetDouble(),
+        //        XLDataType.DateTime => cell.GetDateTime(),
+        //        XLDataType.Boolean => cell.GetBoolean(),
+        //        XLDataType.Text => cell.GetString(),
+        //        _ => cell.Value.ToString()
+        //    };
+        //}
     }
 }
 

@@ -30,9 +30,18 @@ namespace FileMappingEngine.Lib.Models
             General,
             Number,
             Currency,
-            Percentage,
+            Accounting,
             Date,
-            Text
+            DateShort,
+            DateLong,
+            DateTime,
+            Time,
+            Percentage,
+            Fraction,
+            Scientific,
+            Text,
+            Special,
+            Custom
         }
         public enum TokenType
         {
