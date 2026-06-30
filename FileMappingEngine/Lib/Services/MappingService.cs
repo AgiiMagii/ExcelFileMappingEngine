@@ -144,7 +144,7 @@ namespace FileMappingEngine.Lib.Services
                 Order = steps.Count + 1,
                 Parameters = new Dictionary<string, object>
                 {
-                    ["DataType"] = dataType
+                    ["DataType"] = dataType.FullName ?? string.Empty,
                 }
             });
         }

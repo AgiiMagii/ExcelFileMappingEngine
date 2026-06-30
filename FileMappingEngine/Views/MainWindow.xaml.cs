@@ -27,11 +27,6 @@ namespace FileMappingEngine
             InitializeComponent();
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-
-        }
-
         private void LoadFile(string fileName)
         {
             appManager.OpenFile(fileName);
