@@ -172,7 +172,7 @@ namespace FileMappingEngine
             SaveMappingSetToJson();
         }
 
-        private void DataGrid_Sorting(object sender, DataGridSortingEventArgs e)
+        private void OnDataGridSorting_Sorting(object sender, DataGridSortingEventArgs e)
         {
             string columnName = e.Column.Header.ToString() ?? "";
 
@@ -203,7 +203,8 @@ namespace FileMappingEngine
         private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
             DataGridColumn column = e.Column;
-            System.Windows.Style style = new(typeof(DataGridColumnHeader));
+            e.Column.CanUserSort = true;
+            Style style = new(typeof(DataGridColumnHeader), (Style)Application.Current.FindResource(typeof(DataGridColumnHeader)));
 
             style.Setters.Add(new EventSetter(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler(ColumnHeader_PreviewMouseLeftButtonDown)));
             style.Setters.Add(new EventSetter(ContextMenuOpeningEvent, new ContextMenuEventHandler(ColumnHeader_ContextMenuOpening)));
@@ -230,6 +231,22 @@ namespace FileMappingEngine
             if (sender is not DataGridColumnHeader header)
                 return;
 
+            Point position = e.GetPosition(header);
+
+            if (position.X >= header.ActualWidth - 5)
+            {
+                return;
+            }
+
+            MessageBoxResult result = MessageBox.Show(
+                "Vai vēlaties mainīt kārtošanas secību?",
+                "Apstiprinājums",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
             string? columnName = header.Content?.ToString();
 
             if (string.IsNullOrEmpty(columnName))
@@ -247,6 +264,7 @@ namespace FileMappingEngine
                     _selectedColumns);
 
                 e.Handled = true;
+
             }
             else
             {
@@ -255,6 +273,7 @@ namespace FileMappingEngine
                 helper.UpdateSelectedColumnHeaders(
                     dataGrid,
                     _selectedColumns);
+
             }
         }
 

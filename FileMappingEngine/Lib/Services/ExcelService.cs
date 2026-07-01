@@ -12,10 +12,8 @@ using static FileMappingEngine.Lib.Models.Enums;
 
 namespace FileMappingEngine.Lib.Services
 {
-    public class ExcelService
+    public static class ExcelService
     {
-        public List<string[]>? IgnoredRows { get; private set; }
-
         public static RawExcelData LoadRawData(string filePath)
         {
             DataTable rawData = new();
@@ -71,7 +69,6 @@ namespace FileMappingEngine.Lib.Services
             if (headerIndex >= rawData.Rows.Count)
                 throw new ArgumentException("Invalid header row.");
 
-            // Header rinda
             DataRow headerRow = rawData.Rows[headerIndex];
 
             HashSet<string> usedNames = [];
@@ -89,7 +86,6 @@ namespace FileMappingEngine.Lib.Services
                 dataTable.Columns.Add(colName, rawData.Columns[c].DataType);
             }
 
-            // Dati zem header
             for (int r = headerIndex + 1; r < rawData.Rows.Count; r++)
             {
                 DataRow newRow = dataTable.NewRow();
@@ -147,7 +143,6 @@ namespace FileMappingEngine.Lib.Services
             foreach (DataRow dr in dt.Rows)
             {
                 for (int c = 0; c < dt.Columns.Count; c++)
-                    //DataHelper.SetCellValue(ws.Cell(currentRow, c + 1), dr[c]);
                     DataHelper.SetCellValue(ws.Cell(currentRow, c + 1), dr[c], dt.Columns[c].DataType);
                 currentRow++;
             }

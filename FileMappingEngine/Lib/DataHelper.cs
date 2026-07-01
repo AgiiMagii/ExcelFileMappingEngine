@@ -7,13 +7,6 @@ namespace FileMappingEngine.Lib
 {
     public static class DataHelper
     {
-        public static object GetCellValue(object? value)
-        {
-            if (value == null || value == DBNull.Value)
-                return "";
-
-            return value;
-        }
         public static void SetCellValue(IXLCell cell, object? value, Type columnType)
         {
             if (columnType == typeof(string))

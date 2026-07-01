@@ -33,6 +33,7 @@ namespace FileMappingEngine.Lib.Services
                 Order = steps.Count + 1
             });
         }
+
         public void AddNewColumnStep(string newColumnName, string anchorId, string direction)
         {
             steps.Add(new ActionStep
@@ -47,6 +48,7 @@ namespace FileMappingEngine.Lib.Services
                 }
             });
         }
+
         public void RenameColumnStep(string oldName, string newName)
         {
             steps.Add(new ActionStep

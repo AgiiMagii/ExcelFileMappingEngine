@@ -96,11 +96,6 @@ namespace FileMappingEngine.Lib
 
             DataTable dataToSave = CurrentFile.CurrentData.Copy();
 
-            //for (int i = 0; i < CurrentFile.HeaderRowIndex - 1; i++)
-            //{
-            //    dataToSave.Rows.RemoveAt(0);
-            //}
-
             ExcelService.SaveFile(
                 filePath,
                 dataToSave,
@@ -118,7 +113,6 @@ namespace FileMappingEngine.Lib
                 mappingEngine.RemoveColumnStep(columnName);
             }
         }
-
         private void RemoveColumnCore(string columnName)
         {
             if (CurrentData.Columns.Contains(columnName))
@@ -141,7 +135,6 @@ namespace FileMappingEngine.Lib
                 direction);
             }
         }
-
         private string AddColumnCore(string direction, string anchorId, string? newName, Type? dataType = null)
         {
             string newColumnName = newName ?? GenerateColumnName();
@@ -218,7 +211,6 @@ namespace FileMappingEngine.Lib
                 mappingEngine.RenameColumnStep(oldName, newName);
             }
         }
-
         private void RenameColumnCore(string oldName, string newName)
         {
             if (!CurrentData.Columns.Contains(oldName))
@@ -438,7 +430,6 @@ namespace FileMappingEngine.Lib
             CurrentFile.SortedColumn = columnName;
             CurrentFile.SortAscending = ascending;
         }
-
         private void SortDataCore(string columnName, bool ascending)
         {
             if (!CurrentData.Columns.Contains(columnName))
@@ -471,7 +462,6 @@ namespace FileMappingEngine.Lib
                     formula);
             }
         }
-
         public void ApplyFormulaToColumnCore(string columnName, string formula)
         {
             if (CurrentFile == null)
@@ -497,7 +487,6 @@ namespace FileMappingEngine.Lib
                 formulaTree);
 
         }
-
         private void ApplyFormula(DataTable dataTable, string targetColumn, FormulaNode formulaTree)
         {
             foreach (DataRow row in dataTable.Rows)
@@ -524,7 +513,6 @@ namespace FileMappingEngine.Lib
                 mappingEngine.AddSetColumnDataTypeStep(columnName, dataType);
             }
         }
-
         private void SetColumnDataTypeCore(string columnName, Type dataType)
         {
             if (!CurrentData.Columns.Contains(columnName))

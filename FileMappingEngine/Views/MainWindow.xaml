@@ -25,9 +25,10 @@
             <Grid>
                 <DataGrid Name="dataGrid"
                   AutoGenerateColumns="True"
+                  CanUserSortColumns="True"
                   HeadersVisibility="Column"
                   Margin="5"
-                  Sorting="DataGrid_Sorting"
+                  Sorting="OnDataGridSorting_Sorting"
                   AutoGeneratingColumn="DataGrid_AutoGeneratingColumn"/>
             </Grid>
         </DockPanel>
