@@ -60,6 +60,7 @@ namespace FileMappingEngine.Lib.Services
                 Columns = columns
             };
         }
+
         public static DataTable BuildDataTable(DataTable rawData, int headerRowIndex = 1)
         {
             DataTable dataTable = new();
@@ -149,6 +150,7 @@ namespace FileMappingEngine.Lib.Services
 
             workbook.SaveAs(filePath);
         }
+
         private static object GetCellValue(IXLCell cell)
         {
             if (cell.IsEmpty())
@@ -156,7 +158,9 @@ namespace FileMappingEngine.Lib.Services
 
             return cell.DataType switch
             {
-                XLDataType.Number => cell.GetDouble(),
+                XLDataType.Number => decimal.TryParse(cell.Value.ToString(), out var dec)
+                    ? dec
+                    : 0m,
                 XLDataType.DateTime => cell.GetDateTime(),
                 XLDataType.Boolean => cell.GetBoolean(),
                 XLDataType.Text => cell.GetString(),

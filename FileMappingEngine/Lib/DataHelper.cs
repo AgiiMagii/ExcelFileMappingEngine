@@ -1,6 +1,7 @@
 ﻿using ClosedXML.Excel;
 using System;
 using System.Collections.Generic;
+using System.Drawing.Imaging.Effects;
 using System.Text;
 
 namespace FileMappingEngine.Lib
@@ -25,11 +26,11 @@ namespace FileMappingEngine.Lib
             switch (value)
             {
                 case double d:
-                    cell.Value = d;
+                    cell.Value = Convert.ToDecimal(d);
                     break;
 
                 case decimal d:
-                    cell.Value = (double)d;
+                    cell.Value = d;
                     break;
 
                 case int i:

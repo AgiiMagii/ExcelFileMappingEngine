@@ -23,23 +23,22 @@ namespace FileMappingEngine.Lib.Services
             return _tokens[_position].Value == value;
         }
 
-        // Tokenize saņem string, un atgriež sarakstu ar FormulaToken objektiem, kas satur informāciju par katru tokenu (tipu un vērtību).
         public static List<FormulaToken> Tokenize(string formula)
         {
             var tokens = new List<FormulaToken>();
 
             formula = formula.TrimStart('=');
 
+            formula = NormalizeDecimals(formula);
+
             var matches = Regex.Matches(
                 formula,
-                @"\[[^\]]+\]|[+\-*/()]|[,;]|\d+([.,]\d+)?|[a-zA-Z_]+"
+                @"\[[^\]]+\]|[+\-*/()]|[,;]|\d+(?:\.\d+)?|[a-zA-Z_]+"
             );
-
 
             foreach (Match match in matches)
             {
                 string value = match.Value;
-
 
                 if (value.StartsWith('['))
                 {
@@ -50,8 +49,7 @@ namespace FileMappingEngine.Lib.Services
                     });
                 }
 
-
-                else if (double.TryParse(value.Replace(',', '.'), CultureInfo.InvariantCulture, out double number))
+                else if (decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal number))
                 {
                     tokens.Add(new FormulaToken
                     {
@@ -60,11 +58,7 @@ namespace FileMappingEngine.Lib.Services
                     });
                 }
 
-
-                else if (value == "+" ||
-                         value == "-" ||
-                         value == "*" ||
-                         value == "/")
+                else if (value is "+" or "-" or "*" or "/")
                 {
                     tokens.Add(new FormulaToken
                     {
@@ -72,7 +66,6 @@ namespace FileMappingEngine.Lib.Services
                         Value = value
                     });
                 }
-
 
                 else if (value == "(")
                 {
@@ -82,8 +75,6 @@ namespace FileMappingEngine.Lib.Services
                         Value = value
                     });
                 }
-
-
                 else if (value == ")")
                 {
                     tokens.Add(new FormulaToken
@@ -93,7 +84,6 @@ namespace FileMappingEngine.Lib.Services
                     });
                 }
 
-
                 else if (value == "," || value == ";")
                 {
                     tokens.Add(new FormulaToken
@@ -102,7 +92,6 @@ namespace FileMappingEngine.Lib.Services
                         Value = value
                     });
                 }
-
 
                 else
                 {
@@ -114,10 +103,13 @@ namespace FileMappingEngine.Lib.Services
                 }
             }
 
-
             return tokens;
         }
-        // Parse saņem sarakstu ar FormulaToken objektiem un atgriež saknes FormulaNode objektu, kas reprezentē izteiksmes koku.
+        private static string NormalizeDecimals(string formula)
+        {
+            // pārvērš 1,54 → 1.54 (iekšējais formāts vienmēr dot)
+            return Regex.Replace(formula, @"(\d),(\d)", "$1.$2");
+        }
         public FormulaNode Parse(List<FormulaToken> tokens)
         {
             _tokens = tokens;
@@ -125,7 +117,6 @@ namespace FileMappingEngine.Lib.Services
 
             return ParseExpression();
         }
-        // ParseExpression atgriež FormulaNode objektu, kas reprezentē izteiksmes koku, kurā tiek apstrādāti operatori + un -.
         private FormulaNode ParseExpression()
         {
             var left = ParseTerm();
@@ -153,7 +144,6 @@ namespace FileMappingEngine.Lib.Services
 
             return left;
         }
-        // ParseTerm atgriež FormulaNode objektu, kas reprezentē izteiksmes koku, kurā tiek apstrādāti operatori * un /.
         private FormulaNode ParseTerm()
         {
             FormulaNode left = ParseFactor();
@@ -184,7 +174,6 @@ namespace FileMappingEngine.Lib.Services
 
             return left;
         }
-        // ParseFactor atgriež FormulaNode objektu, kas reprezentē izteiksmes koku, kurā tiek apstrādāti skaitļi, kolonnas, funkcijas un iekavas.
         private FormulaNode ParseFactor()
         {
             var token = _tokens[_position];
@@ -241,7 +230,6 @@ namespace FileMappingEngine.Lib.Services
             throw new Exception(
                 $"Unexpected token {token.Value}");
         }
-        // ParseFunction atgriež FormulaNode objektu, kas reprezentē izteiksmes koku, kurā tiek apstrādātas funkcijas.
         private FormulaNode ParseFunction()
         {
             FormulaToken functionToken = _tokens[_position];
@@ -289,33 +277,31 @@ namespace FileMappingEngine.Lib.Services
 
             return function;
         }
-        // Evaluate saņem saknes FormulaNode objektu un DataRow objektu, un atgriež izteiksmes rezultātu kā double.
-        public double Evaluate(FormulaNode node, DataRow row)
+        public decimal Evaluate(FormulaNode node, DataRow row)
         {
             return node.Type switch
             {
-                FormulaNodeType.Constant => double.Parse(
-                                        node.Value!,
-                                        CultureInfo.InvariantCulture),
-                FormulaNodeType.Column => Convert.ToDouble(
-                                        row[node.Value!]),
-                FormulaNodeType.Operator => EvaluateOperator(
-                                        node,
-                                        row),
-                FormulaNodeType.Function => EvaluateFunction(
-                                        node,
-                                        row),
-                _ => throw new Exception(
-                                        "Unknown node type"),
+                FormulaNodeType.Constant =>
+                    decimal.Parse(node.Value!, CultureInfo.InvariantCulture),
+
+                FormulaNodeType.Column =>
+                    Convert.ToDecimal(row[node.Value!]),
+
+                FormulaNodeType.Operator =>
+                    EvaluateOperator(node, row),
+
+                FormulaNodeType.Function =>
+                    EvaluateFunction(node, row),
+
+                _ => throw new Exception("Unknown node type"),
             };
         }
-        // EvaluateOperator saņem FormulaNode objektu, kas reprezentē operatoru, un DataRow objektu, un atgriež izteiksmes rezultātu kā double.
-        private double EvaluateOperator(FormulaNode node, DataRow row)
+        private decimal EvaluateOperator(FormulaNode node, DataRow row)
         {
-            double left =
+            decimal left =
                 Evaluate(node.Left!, row);
 
-            double right =
+            decimal right =
                 Evaluate(node.Right!, row);
 
 
@@ -336,8 +322,7 @@ namespace FileMappingEngine.Lib.Services
                 _ => throw new Exception()
             };
         }
-        // EvaluateFunction saņem FormulaNode objektu, kas reprezentē funkciju, un DataRow objektu, un atgriež izteiksmes rezultātu kā double.
-        private double EvaluateFunction(FormulaNode node, DataRow row)
+        private decimal EvaluateFunction(FormulaNode node, DataRow row)
         {
             return node.Function switch
             {
@@ -347,18 +332,16 @@ namespace FileMappingEngine.Lib.Services
                     $"Unsupported function {node.Function}")
             };
         }
-        // EvaluateRound saņem FormulaNode objektu, kas reprezentē ROUND funkciju, un DataRow objektu, un atgriež izteiksmes rezultātu kā double.
-        private double EvaluateRound(FormulaNode node, DataRow row)
+        private decimal EvaluateRound(FormulaNode node, DataRow row)
         {
             if (node.Arguments.Count != 2)
-                throw new InvalidOperationException(
-                    "ROUND requires 2 arguments.");
+                throw new InvalidOperationException("ROUND requires 2 arguments.");
 
-            double value = Evaluate(node.Arguments[0], row);
+            decimal value = Evaluate(node.Arguments[0], row);
 
             int decimals = (int)Evaluate(node.Arguments[1], row);
 
-            return Math.Round(value, decimals);
+            return Math.Round(value, decimals, MidpointRounding.AwayFromZero);
         }
     }
 }

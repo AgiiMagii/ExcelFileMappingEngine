@@ -21,6 +21,7 @@ namespace FileMappingEngine
         private readonly UiHelper helper = new();
         private readonly HashSet<string> _selectedColumns = [];
         private bool _isFirstLoad = false;
+        private bool _allowSorting = false;
         private string? _oldColumnName;
         public MainWindow()
         {
@@ -174,6 +175,23 @@ namespace FileMappingEngine
 
         private void OnDataGridSorting_Sorting(object sender, DataGridSortingEventArgs e)
         {
+            if (!_allowSorting)
+            {
+                MessageBoxResult result = MessageBox.Show(
+                    "Vai vēlaties mainīt kārtošanas secību?",
+                    "Apstiprinājums",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result != MessageBoxResult.Yes)
+                {
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            _allowSorting = false;
+
             string columnName = e.Column.Header.ToString() ?? "";
 
             bool ascending =
@@ -234,46 +252,31 @@ namespace FileMappingEngine
             Point position = e.GetPosition(header);
 
             if (position.X >= header.ActualWidth - 5)
-            {
-                return;
-            }
-
-            MessageBoxResult result = MessageBox.Show(
-                "Vai vēlaties mainīt kārtošanas secību?",
-                "Apstiprinājums",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (result != MessageBoxResult.Yes)
                 return;
 
             string? columnName = header.Content?.ToString();
 
-            if (string.IsNullOrEmpty(columnName))
+            if (string.IsNullOrWhiteSpace(columnName))
                 return;
 
-            bool ctrlPressed = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
-
-            if (ctrlPressed)
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
             {
                 if (!_selectedColumns.Remove(columnName))
                     _selectedColumns.Add(columnName);
 
-                helper.UpdateSelectedColumnHeaders(
-                    dataGrid,
-                    _selectedColumns);
+                helper.UpdateSelectedColumnHeaders(dataGrid, _selectedColumns);
 
                 e.Handled = true;
-
+                return;
             }
-            else
+
+            if (_selectedColumns.Count > 0)
             {
                 _selectedColumns.Clear();
+                helper.UpdateSelectedColumnHeaders(dataGrid, _selectedColumns);
 
-                helper.UpdateSelectedColumnHeaders(
-                    dataGrid,
-                    _selectedColumns);
-
+                e.Handled = true;
+                return;
             }
         }
 

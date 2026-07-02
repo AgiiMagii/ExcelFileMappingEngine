@@ -491,7 +491,7 @@ namespace FileMappingEngine.Lib
         {
             foreach (DataRow row in dataTable.Rows)
             {
-                double result = formulaService.Evaluate(formulaTree, row);
+                decimal result = formulaService.Evaluate(formulaTree, row);
 
                 row[targetColumn] = result;
             }
