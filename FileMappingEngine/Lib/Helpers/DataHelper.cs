@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Drawing.Imaging.Effects;
 using System.Text;
 
-namespace FileMappingEngine.Lib
+namespace FileMappingEngine.Lib.Helpers
 {
     public static class DataHelper
     {

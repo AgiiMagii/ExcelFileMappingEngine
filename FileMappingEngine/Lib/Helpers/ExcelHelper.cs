@@ -1,6 +1,5 @@
 ﻿using ClosedXML.Attributes;
 using ClosedXML.Excel;
-using FileMappingEngine.Lib;
 using FileMappingEngine.Lib.Models;
 using System;
 using System.Collections.Generic;
@@ -10,9 +9,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using static FileMappingEngine.Lib.Models.Enums;
 
-namespace FileMappingEngine.Lib.Services
+namespace FileMappingEngine.Lib.Helpers
 {
-    public static class ExcelService
+    public static class ExcelHelper
     {
         public static RawExcelData LoadRawData(string filePath)
         {
@@ -123,18 +122,21 @@ namespace FileMappingEngine.Lib.Services
             
         }
 
-        public static void SaveFile(string filePath, DataTable dt, List<List<string>> ignoredRows)
+        public static void SaveFile(string filePath, DataTable dt, List<List<string>> ignoredRows = null)
         {
             using XLWorkbook workbook = new();
             var ws = workbook.Worksheets.Add("Sheet1");
 
             int currentRow = 1;
 
-            foreach (var row in ignoredRows)
+            if (ignoredRows != null)
             {
-                for (int c = 0; c < row.Count; c++)
-                    ws.Cell(currentRow, c + 1).Value = row[c];
-                currentRow++;
+                foreach (var row in ignoredRows)
+                {
+                    for (int c = 0; c < row.Count; c++)
+                        ws.Cell(currentRow, c + 1).Value = row[c];
+                    currentRow++;
+                }
             }
 
             for (int c = 0; c < dt.Columns.Count; c++)

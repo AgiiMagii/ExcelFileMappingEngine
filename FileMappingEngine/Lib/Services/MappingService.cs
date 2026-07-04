@@ -1,154 +1,137 @@
-﻿using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
-using FileMappingEngine.Lib.Models;
+﻿using FileMappingEngine.Lib.Models;
+using FileMappingEngine.Lib.Sessions;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.IO;
 using System.Text;
-using System.Windows.Controls;
+using System.Text.Json;
 
 namespace FileMappingEngine.Lib.Services
 {
     public class MappingService
     {
-        private readonly List<ActionStep> steps = [];
-        private readonly List<ActionStep> previousSteps = [];
-
-        public static string[] GetJsonFiles()
+        private readonly MappingSession mappingEngine = new();
+        private bool IsApplyingMapping { get; set; }
+        
+        public void SaveMappingSet(DataSession session, string filePath)
         {
-            string folderPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MappingSets");
-            if (!Directory.Exists(folderPath))
-                Directory.CreateDirectory(folderPath);
-            string[] jsonFiles = Directory.GetFiles(folderPath, "*.json");
-            return jsonFiles;
-        }
+            if (session.File == null)
+                throw new InvalidOperationException("No file loaded.");
 
-        public void RemoveColumnStep(string columnName)
-        {
-            steps.Add(new ActionStep
+            if (session.Data.SortedColumn != null &&
+                session.Data.SortAscending.HasValue)
             {
-                ActionType = "DeleteColumn",
-                ColumnId = columnName,
-                Order = steps.Count + 1
-            });
-        }
+                mappingEngine.AddSortStep(
+                    session.Data.SortedColumn,
+                    session.Data.SortAscending.Value);
+            }
 
-        public void AddNewColumnStep(string newColumnName, string anchorId, string direction)
+            string fileName = Path.GetFileNameWithoutExtension(filePath);
+
+            session.MappingSet.Name = fileName;
+
+            JsonService.CreateJson(session.MappingSet, filePath);
+        }
+        public void ApplyMappingSet(DataSession session, DataService dataService, string filePath)
         {
-            steps.Add(new ActionStep
+            if (session.File == null)
+                throw new InvalidOperationException("No file loaded.");
+            if (session.Data.CurrentData == null)
+                throw new InvalidOperationException("Current data not available.");
+
+            string json = File.ReadAllText(filePath);
+            MappingSet mapping = JsonSerializer.Deserialize<MappingSet>(json) ?? throw new InvalidOperationException("Failed to deserialize mapping set.");
+            try
             {
-                ActionType = "AddColumn",
-                ColumnId = newColumnName,
-                Order = steps.Count + 1,
-                Parameters = new Dictionary<string, object>
-                {
-                    ["AnchorColumnId"] = anchorId,
-                    ["Direction"] = direction
-                }
-            });
-        }
+                IsApplyingMapping = true;
 
-        public void RenameColumnStep(string oldName, string newName)
-        {
-            steps.Add(new ActionStep
+                session.Data.HeaderRowIndex = mapping.HeaderRow;
+
+                dataService.UpdateHeaderRow(session.Data, session.Data.HeaderRowIndex);
+
+                ExecuteMappingSteps(mapping, session, dataService);
+
+            }
+            finally
             {
-                ActionType = "RenameColumn",
-                ColumnId = oldName,
-                Order = steps.Count + 1,
-                Parameters = new Dictionary<string, object>
-                {
-                    ["NewName"] = newName
-                }
-            });
-        }
-
-        public MappingSet GenerateMappingSet(string fileName, int headerRow)
-        {
-            MappingSet mapping = new()
-            {
-                Name = fileName,
-                HeaderRow = headerRow,
-                Steps = steps
-            };
-            return mapping;
-        }
-
-        public void ClearSteps()
-        {
-            steps.Clear();
-        }
-
-        public void SavePreviousSteps()
-        {
-            previousSteps.Clear();
-            previousSteps.AddRange(steps);
-        }
-
-        public void UndoLastStep()
-        {
-            if (steps.Count > 0)
-            {
-                steps.RemoveAt(steps.Count - 1);
+                IsApplyingMapping = false;
             }
         }
-
-        public void AddMergeColumnsStep(string newColumnName, string firstColumn, string secondColumn, string separator)
+        private void ExecuteMappingSteps(MappingSet mapping, DataSession session, DataService dataService)
         {
-            steps.Add(new ActionStep
+            foreach (var step in mapping.Steps.OrderBy(s => s.Order))
             {
-                ActionType = "MergeColumns",
-                ColumnId = newColumnName,
-                Order = steps.Count + 1,
-                Parameters = new Dictionary<string, object>
+                switch (step.ActionType)
                 {
-                    ["FirstColumn"] = firstColumn,
-                    ["SecondColumn"] = secondColumn,
-                    ["Separator"] = separator
-                }
-            });
-        }
+                    case "DeleteColumn":
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing for DeleteColumn action.");
+                        dataService.RemoveColumnCore(session.Data, step.ColumnId);
+                        break;
+                    case "AddColumn":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for AddColumn action.");
+                        string anchorId = step.Parameters["AnchorColumnId"].ToString() ?? throw new InvalidOperationException("Anchor column ID missing.");
+                        string direction = step.Parameters["Direction"].ToString() ?? throw new InvalidOperationException("Direction missing.");
+                        string? givenName = step.Parameters.TryGetValue("NewName", out object? value) ? value.ToString() : null;
+                        Type? type = step.Parameters.TryGetValue("DataType", out object? typeValue) ? Type.GetType(typeValue.ToString() ?? "") : null;
 
-        public void AddSortStep(string columnName, bool sortOrder)
-        {
-            steps.Add(new ActionStep
-            {
-                ActionType = "Sort",
-                ColumnId = columnName,
-                Order = steps.Count + 1,
-                Parameters = new Dictionary<string, object>
-                {
-                    ["Ascending"] = sortOrder
-                }
-            });
-        }
+                        dataService.AddColumnCore(session.Data, direction, anchorId, givenName, type);
+                        break;
+                    case "RenameColumn":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for RenameColumn action.");
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing for RenameColumn action.");
+                        string newName = step.Parameters["NewName"].ToString() ?? throw new InvalidOperationException("New name missing.");
+                        dataService.RenameColumnCore(session.Data, step.ColumnId, newName);
+                        break;
+                    case "MergeColumns":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for MergeColumns action.");
+                        string firstColumnName = step.Parameters["FirstColumn"].ToString() ?? throw new InvalidOperationException("First column name missing.");
+                        string secondColumnName = step.Parameters["SecondColumn"].ToString() ?? throw new InvalidOperationException("Second column name missing.");
+                        string separator = step.Parameters["Separator"].ToString() ?? throw new InvalidOperationException("Separator missing.");
+                        dataService.MergeColumns(session.Data, new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, step.ColumnId);
+                        break;
+                    case "Sort":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for Sort action.");
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing for Sort action.");
+                        bool ascending = ((JsonElement)step.Parameters["Ascending"]).GetBoolean();
+                        dataService.SortDataCore(session.Data, step.ColumnId, ascending);
+                        break;
+                    case "Formula":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for Formula action.");
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing for Formula action.");
+                        string formula = step.Parameters["Formula"].ToString() ?? throw new InvalidOperationException("Formula missing.");
+                        dataService.ApplyFormulaToColumnCore(session.Data, step.ColumnId, formula);
+                        break;
+                    case "SetColumnDataType":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for SetColumnDataType action.");
 
-        public void AddFormulaStep(string columnName, string formula)
-        {
-            steps.Add(new ActionStep
-            {
-                ActionType = "Formula",
-                ColumnId = columnName,
-                Order = steps.Count + 1,
-                Parameters = new Dictionary<string, object>
-                {
-                    ["Formula"] = formula
-                }
-            });
-        }
+                        string typeName = step.Parameters["DataType"] is JsonElement element
+                            ? element.GetString() ?? throw new InvalidOperationException("DataType missing.")
+                            : step.Parameters["DataType"].ToString()
+                                ?? throw new InvalidOperationException("DataType missing.");
 
-        public void AddSetColumnDataTypeStep(string columnName, Type dataType)
-        {
-            steps.Add(new ActionStep
-            {
-                ActionType = "SetColumnDataType",
-                ColumnId = columnName,
-                Order = steps.Count + 1,
-                Parameters = new Dictionary<string, object>
-                {
-                    ["DataType"] = dataType.FullName ?? string.Empty,
+                        Type dataType = Type.GetType(typeName)
+                            ?? throw new InvalidOperationException($"Unknown type: {typeName}");
+
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing.");
+
+                        dataService.SetColumnDataTypeCore(session.Data, step.ColumnId, dataType);
+                        break;
+
+                    default:
+                        throw new InvalidOperationException($"Unknown action type: {step.ActionType}");
                 }
-            });
+            }
         }
     }
 }

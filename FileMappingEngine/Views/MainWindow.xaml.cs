@@ -1,4 +1,5 @@
 ﻿using FileMappingEngine.Lib;
+using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Views;
 using Microsoft.Win32;
@@ -17,26 +18,24 @@ namespace FileMappingEngine
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly AppManager appManager = new();
+        private readonly AppManager appManager;
         private readonly UiHelper helper = new();
         private readonly HashSet<string> _selectedColumns = [];
         private bool _isFirstLoad = false;
         private bool _allowSorting = false;
         private string? _oldColumnName;
-        public MainWindow()
+        public MainWindow(AppManager appManager)
         {
             InitializeComponent();
+            this.appManager = appManager;
         }
 
         private void LoadFile(string fileName)
         {
             appManager.OpenFile(fileName);
 
-            if (appManager.CurrentData == null)
-            {
-                MessageBox.Show("Failed to load file.");
+            if (!appManager.HasFile)
                 return;
-            }
 
             headerRowPanel.IsEnabled = true;
 
@@ -51,8 +50,9 @@ namespace FileMappingEngine
 
         private void LoadComboBox()
         {
+            List<string> columns = appManager.GetDataColumns()?.Select(c => c.Name).ToList() ?? new List<string>();
             CbHeaderRow.Items.Clear();
-            for (int i = 1; i <= appManager.CurrentData.Rows.Count; i++)
+            for (int i = 1; i <= columns.Count; i++)
             {
                 CbHeaderRow.Items.Add(i);
             }
@@ -61,9 +61,12 @@ namespace FileMappingEngine
 
         private void GenerateMappingSetButtons()
         {
+            using var conn = new Npgsql.NpgsqlConnection("Host=localhost;Port=5432;Username=postgres;Password=GerberaSpotlight;Database=fme");
+            conn.Open();
+            MessageBox.Show("Connected to PostgreSQL database successfully!");
             mappingPanel.Children.Clear();
 
-            foreach (string mappingPath in AppManager.GetExistingMappings())
+            foreach (string mappingPath in appManager.GetExistingMappings())
             {
                 Button button = new()
                 {
@@ -81,11 +84,11 @@ namespace FileMappingEngine
 
         private void ReloadGrid()
         {
-            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+            helper.ReloadDataGrid(dataGrid, appManager.currentData);
 
             helper.UpdateSelectedColumnHeaders(dataGrid,_selectedColumns);
 
-            if (appManager.CurrentFile?.SortedColumn != null)
+            if (appManager.currentDataState?.SortedColumn != null)
             {
                 RestoreSort();
             }
@@ -101,19 +104,23 @@ namespace FileMappingEngine
 
         private void ChooseFileButton_Click(object sender, RoutedEventArgs e)
         {
-            if (appManager.CurrentFile?.CurrentData != null && appManager.CurrentData.Rows.Count > 0)
+            if (appManager.HasFile)
             {
-                MessageBoxResult result = MessageBox.Show(
-                    "Vai vēlaties ielādēt citu failu? Pašreizējā tabula tiks izdzēsta.",
-                    "Apstiprinājums",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
+                var session = appManager.CurrentSession!;
 
-                if (result == MessageBoxResult.No)
+                if (session.Data.CurrentData.Rows.Count > 0)
                 {
-                    return;
+                    MessageBoxResult result = MessageBox.Show(
+                        "Vai vēlaties ielādēt citu failu? Pašreizējā tabula tiks izdzēsta.",
+                        "Apstiprinājums",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+
+                    if (result == MessageBoxResult.No)
+                        return;
+
+                    appManager.CloseCurrentFile(session);
                 }
-                appManager.CloseCurrentFile();
             }
 
             OpenFileDialog ofd = new()
@@ -127,13 +134,13 @@ namespace FileMappingEngine
                 LoadFile(ofd.FileName);
                 _isFirstLoad = false;
 
-                txtFilePath.Text = appManager?.CurrentFile?.FileName;
+                txtFilePath.Text = appManager?.CurrentSession?.File?.FileName;
             }
         }
 
         private void CbHeaderRow_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (CbHeaderRow.SelectedIndex >= 0 && appManager.CurrentFile != null && appManager.CurrentFile.FileName != null)
+            if (CbHeaderRow.SelectedIndex >= 0 && appManager.CurrentSession?.File != null && appManager.CurrentSession.File.FileName != null)
             {
                 int headerRowIndex = CbHeaderRow.SelectedIndex + 1;
 
@@ -144,13 +151,13 @@ namespace FileMappingEngine
 
         private void SaveFileButton_Click(object sender, RoutedEventArgs e)
         {
-            if (appManager.CurrentFile == null)
+            if (appManager.CurrentSession?.File == null)
                 return;
 
             SaveFileDialog sfd = new()
             {
                 Filter = "Excel Files|*.xlsx;*.xls",
-                FileName = appManager.CurrentFile.FileName
+                FileName = appManager.CurrentSession.File.FileName
             };
 
             if (sfd.ShowDialog() == true)
@@ -202,16 +209,16 @@ namespace FileMappingEngine
 
         private void RestoreSort()
         {
-            if (appManager.CurrentFile?.SortedColumn == null)
+            if (appManager.currentDataState?.SortedColumn == null)
                 return;
 
             foreach (var column in dataGrid.Columns)
             {
                 if (column.Header?.ToString() ==
-                    appManager.CurrentFile.SortedColumn)
+                    appManager.currentDataState.SortedColumn)
                 {
                     column.SortDirection =
-                        appManager.CurrentFile.SortAscending == true
+                        appManager.currentDataState.SortAscending == true
                         ? ListSortDirection.Ascending
                         : ListSortDirection.Descending;
                 }
@@ -425,7 +432,7 @@ namespace FileMappingEngine
 
             appManager.RenameColumn(_oldColumnName!, newName);
 
-            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
+            helper.ReloadDataGrid(dataGrid, appManager.currentData);
 
             RenameColumnOverlay.Visibility = Visibility.Collapsed;
         }
@@ -442,7 +449,7 @@ namespace FileMappingEngine
 
         private void ResetTable_Click(object sender, RoutedEventArgs e)
         {
-            if (appManager.CurrentFile == null)
+            if (appManager.CurrentSession?.File == null)
                 return;
             appManager.ResetTable();
             ReloadGrid();
