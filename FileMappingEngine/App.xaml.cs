@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Configuration;
 using System.Data;
 using System.Windows;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
 
 namespace FileMappingEngine
 {
@@ -14,15 +16,20 @@ namespace FileMappingEngine
     /// </summary>
     public partial class App : Application
     {
-        public static IServiceProvider Services { get; private set; }
+        public static IServiceProvider? Services { get; private set; }
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            IConfiguration configuration = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: false)
+    .AddJsonFile("appsettings.Development.json", optional: true)
+    .Build();
             base.OnStartup(e);
 
             var services = new ServiceCollection();
 
-            ConfigureServices(services);
+            ConfigureServices(services, configuration);
 
             Services = services.BuildServiceProvider();
 
@@ -30,7 +37,7 @@ namespace FileMappingEngine
             mainWindow.Show();
         }
 
-        private void ConfigureServices(ServiceCollection services)
+        private void ConfigureServices(ServiceCollection services, IConfiguration configuration)
         {
             // Services
             services.AddSingleton<FileService>();
@@ -38,7 +45,14 @@ namespace FileMappingEngine
             services.AddSingleton<MappingService>();
             services.AddSingleton<MappingRepository>();
             services.AddSingleton<AppManager>();
-            services.AddSingleton(sp => new DbConnFactory("Host=localhost;Port=5432;Username=postgres;Password=GerberaSpotlight;Database=fme"));
+            services.AddSingleton(sp =>
+            {
+                string connectionString =
+                    configuration.GetConnectionString("Default")
+                    ?? throw new InvalidOperationException("Connection string not found.");
+
+                return new DbConnFactory(connectionString);
+            });
 
             // UI
             services.AddTransient<MainWindow>();

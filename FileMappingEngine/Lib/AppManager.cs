@@ -109,12 +109,12 @@ namespace FileMappingEngine.Lib
 
         public bool IsColumnNameTaken(string columnName)
         {
-            return _dataService.IsColumnNameTaken(currentDataState, columnName);
+            return _dataService.IsColumnNameTaken(CurrentSession.Data, columnName);
         }
 
         public void RenameColumn(string oldName, string newName)
         {
-            _dataService.RenameColumn(currentDataState, oldName, newName);
+            _dataService.RenameColumn(CurrentSession, CurrentSession.Data, oldName, newName);
         }
 
         public void ApplyMappingSet(string filePath)
@@ -124,17 +124,17 @@ namespace FileMappingEngine.Lib
 
         public void ResetTable()
         {
-            _dataService.ResetTable(currentDataState);
+            _dataService.ResetTable(CurrentSession, CurrentSession.Data);
         }
 
         public void UndoLastAction()
         {
-            _dataService.UndoLastAction(currentDataState);
+            _dataService.UndoLastAction(CurrentSession, CurrentSession.Data);
         }
 
         public void MergeColumns(ColumnReference first, ColumnReference second, string separator, string? resultColumnName)
         {
-            _dataService.MergeColumns(currentDataState, first, second, separator, resultColumnName);
+            _dataService.MergeColumns(CurrentSession, CurrentSession.Data, first, second, separator, resultColumnName);
         }
 
         public List<ColumnReference> GetDataColumns()
@@ -156,19 +156,19 @@ namespace FileMappingEngine.Lib
 
         public void SortData(string columnName, bool ascending)
         {
-            _dataService.SortData(currentDataState, columnName, ascending);
+            _dataService.SortData(CurrentSession, CurrentSession.Data, columnName, ascending);
         }
 
 
         public void ApplyFormulaToColumn(string columnName, string formula)
         {
-            _dataService.ApplyFormulaToColumn(currentDataState, columnName, formula);
+            _dataService.ApplyFormulaToColumn(CurrentSession, CurrentSession.Data, columnName, formula);
         }
 
 
         public void SetColumnDataType(string columnName, Type dataType)
         {
-            _dataService.SetColumnDataType(currentDataState, columnName, dataType);
+            _dataService.SetColumnDataType(CurrentSession, CurrentSession.Data, columnName, dataType);
         }
     }
 }

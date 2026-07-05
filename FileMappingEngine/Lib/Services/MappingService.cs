@@ -1,4 +1,5 @@
-﻿using FileMappingEngine.Lib.Models;
+﻿using ClosedXML.Excel;
+using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Sessions;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,6 @@ namespace FileMappingEngine.Lib.Services
 {
     public class MappingService
     {
-        private readonly MappingSession mappingEngine = new();
         private bool IsApplyingMapping { get; set; }
         
         public void SaveMappingSet(DataSession session, string filePath)
@@ -21,14 +21,22 @@ namespace FileMappingEngine.Lib.Services
             if (session.Data.SortedColumn != null &&
                 session.Data.SortAscending.HasValue)
             {
-                mappingEngine.AddSortStep(
-                    session.Data.SortedColumn,
-                    session.Data.SortAscending.Value);
+                session.MappingSet.Steps.Add(new ActionStep
+                {
+                    ActionType = "Sort",
+                    ColumnId = session.Data.SortedColumn,
+                    Order = session.MappingSet.Steps.Count + 1,
+                    Parameters = new Dictionary<string, object>
+                    {
+                        ["Ascending"] = session.Data.SortAscending.Value
+                    }
+                });
             }
 
             string fileName = Path.GetFileNameWithoutExtension(filePath);
 
             session.MappingSet.Name = fileName;
+            session.MappingSet.HeaderRow = session.Data.HeaderRowIndex;
 
             JsonService.CreateJson(session.MappingSet, filePath);
         }
@@ -40,14 +48,14 @@ namespace FileMappingEngine.Lib.Services
                 throw new InvalidOperationException("Current data not available.");
 
             string json = File.ReadAllText(filePath);
-            MappingSet mapping = JsonSerializer.Deserialize<MappingSet>(json) ?? throw new InvalidOperationException("Failed to deserialize mapping set.");
+            MappingSet mapping = JsonService.CreateObject<MappingSet>(filePath) ?? throw new InvalidOperationException("Failed to load mapping set from JSON.");
             try
             {
                 IsApplyingMapping = true;
 
-                session.Data.HeaderRowIndex = mapping.HeaderRow;
+                int headerRow = mapping.HeaderRow;
 
-                dataService.UpdateHeaderRow(session.Data, session.Data.HeaderRowIndex);
+                dataService.UpdateHeaderRow(session.Data, headerRow);
 
                 ExecuteMappingSteps(mapping, session, dataService);
 
@@ -92,7 +100,7 @@ namespace FileMappingEngine.Lib.Services
                         string firstColumnName = step.Parameters["FirstColumn"].ToString() ?? throw new InvalidOperationException("First column name missing.");
                         string secondColumnName = step.Parameters["SecondColumn"].ToString() ?? throw new InvalidOperationException("Second column name missing.");
                         string separator = step.Parameters["Separator"].ToString() ?? throw new InvalidOperationException("Separator missing.");
-                        dataService.MergeColumns(session.Data, new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, step.ColumnId);
+                        dataService.MergeColumns(session, session.Data, new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, step.ColumnId);
                         break;
                     case "Sort":
                         if (step.Parameters == null)
