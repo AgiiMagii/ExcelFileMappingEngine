@@ -100,7 +100,7 @@ namespace FileMappingEngine.Lib.Services
                         string firstColumnName = step.Parameters["FirstColumn"].ToString() ?? throw new InvalidOperationException("First column name missing.");
                         string secondColumnName = step.Parameters["SecondColumn"].ToString() ?? throw new InvalidOperationException("Second column name missing.");
                         string separator = step.Parameters["Separator"].ToString() ?? throw new InvalidOperationException("Separator missing.");
-                        dataService.MergeColumns(session, session.Data, new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, step.ColumnId);
+                        dataService.MergeColumns(session, new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, step.ColumnId);
                         break;
                     case "Sort":
                         if (step.Parameters == null)

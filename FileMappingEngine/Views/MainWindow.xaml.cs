@@ -84,11 +84,11 @@ namespace FileMappingEngine
 
         private void ReloadGrid()
         {
-            helper.ReloadDataGrid(dataGrid, appManager.currentData);
+            helper.ReloadDataGrid(dataGrid, appManager.Session?.Data?.CurrentData);
 
             helper.UpdateSelectedColumnHeaders(dataGrid,_selectedColumns);
 
-            if (appManager.currentDataState?.SortedColumn != null)
+            if (appManager.Session?.Data?.SortedColumn != null)
             {
                 RestoreSort();
             }
@@ -106,7 +106,7 @@ namespace FileMappingEngine
         {
             if (appManager.HasFile)
             {
-                var session = appManager.CurrentSession!;
+                var session = appManager.Session!;
 
                 if (session.Data.CurrentData.Rows.Count > 0)
                 {
@@ -134,13 +134,13 @@ namespace FileMappingEngine
                 LoadFile(ofd.FileName);
                 _isFirstLoad = false;
 
-                txtFilePath.Text = appManager?.CurrentSession?.File?.FileName;
+                txtFilePath.Text = appManager?.Session?.File?.FileName;
             }
         }
 
         private void CbHeaderRow_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (CbHeaderRow.SelectedIndex >= 0 && appManager.CurrentSession?.File != null && appManager.CurrentSession.File.FileName != null)
+            if (CbHeaderRow.SelectedIndex >= 0 && appManager.Session?.File != null && appManager.Session.File.FileName != null)
             {
                 int headerRowIndex = CbHeaderRow.SelectedIndex + 1;
 
@@ -151,13 +151,13 @@ namespace FileMappingEngine
 
         private void SaveFileButton_Click(object sender, RoutedEventArgs e)
         {
-            if (appManager.CurrentSession?.File == null)
+            if (appManager.Session?.File == null)
                 return;
 
             SaveFileDialog sfd = new()
             {
                 Filter = "Excel Files|*.xlsx;*.xls",
-                FileName = appManager.CurrentSession.File.FileName
+                FileName = appManager.Session.File.FileName
             };
 
             if (sfd.ShowDialog() == true)
@@ -209,16 +209,16 @@ namespace FileMappingEngine
 
         private void RestoreSort()
         {
-            if (appManager.currentDataState?.SortedColumn == null)
+            if (appManager.Session?.Data?.SortedColumn == null)
                 return;
 
             foreach (var column in dataGrid.Columns)
             {
                 if (column.Header?.ToString() ==
-                    appManager.currentDataState.SortedColumn)
+                    appManager.Session.Data.SortedColumn)
                 {
                     column.SortDirection =
-                        appManager.currentDataState.SortAscending == true
+                        appManager.Session.Data.SortAscending == true
                         ? ListSortDirection.Ascending
                         : ListSortDirection.Descending;
                 }
@@ -432,7 +432,7 @@ namespace FileMappingEngine
 
             appManager.RenameColumn(_oldColumnName!, newName);
 
-            helper.ReloadDataGrid(dataGrid, appManager.currentData);
+            helper.ReloadDataGrid(dataGrid, appManager.Session?.Data?.CurrentData);
 
             RenameColumnOverlay.Visibility = Visibility.Collapsed;
         }
@@ -449,7 +449,7 @@ namespace FileMappingEngine
 
         private void ResetTable_Click(object sender, RoutedEventArgs e)
         {
-            if (appManager.CurrentSession?.File == null)
+            if (appManager.Session?.File == null)
                 return;
             appManager.ResetTable();
             ReloadGrid();

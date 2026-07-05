@@ -16,29 +16,30 @@ namespace FileMappingEngine.Lib.Services
         private readonly FormulaService formulaService = new();
         private readonly List<ActionStep> previousSteps = [];
 
-        public void ResetTable(DataSession session, DataState dataState)
+        public void ResetTable(DataSession session)
         {
-            if (dataState == null)
+            if (session.File == null)
                 throw new InvalidOperationException("No file loaded.");
-            if (dataState.RawData == null)
+            if (session.Data == null)
+                throw new InvalidOperationException("Data not loaded.");
+            if (session.Data.RawData?.Data == null)
                 throw new InvalidOperationException("Raw data not loaded.");
-            if (dataState.RawData.Data == null)
-                throw new InvalidOperationException("Raw data table not available.");
-            dataState.CurrentData = ExcelHelper.BuildDataTable(dataState.RawData.Data, dataState.HeaderRowIndex);
+            session.Data.CurrentData = ExcelHelper.BuildDataTable(session.Data.RawData.Data, session.Data.HeaderRowIndex);
             ClearSteps(session);
         }
-        public void UndoLastAction(DataSession session, DataState dataState)
+        public void UndoLastAction(DataSession session)
         {
-            if (dataState == null)
+            if (session.Data == null)
                 throw new InvalidOperationException("No file loaded.");
-            if (dataState.PreviousData == null)
+            if (session.Data.PreviousData == null)
                 throw new InvalidOperationException("No previous state available.");
             UndoLastStep(session);
-            dataState.CurrentData = dataState.PreviousData.Copy();
+            session.Data.CurrentData = session.Data.PreviousData.Copy();
         }
         public void UpdateHeaderRow(DataState dataState, int newHeaderRow)
         {
-            ArgumentNullException.ThrowIfNull(dataState);
+            if (dataState == null)
+                throw new InvalidOperationException("No file loaded.");
 
             if (dataState.RawData?.Data == null)
                 throw new InvalidOperationException("Raw data not loaded.");
@@ -52,16 +53,20 @@ namespace FileMappingEngine.Lib.Services
 
         public void RemoveColumnCore(DataState dataState, string columnName)
         {
+            if (dataState.CurrentData == null)
+                throw new InvalidOperationException("No data loaded.");
             if (dataState.CurrentData.Columns.Contains(columnName))
             {
                 dataState.CurrentData.Columns.Remove(columnName);
             }
         }
-        public void RemoveColumn(DataSession session, DataState dataState, string columnName)
+        public void RemoveColumn(DataSession session, string columnName)
         {
-            SavePreviousState(session, dataState);
+            if (session.Data == null)
+                throw new InvalidOperationException("No data loaded.");
+            SavePreviousState(session);
 
-            RemoveColumnCore(dataState, columnName);
+            RemoveColumnCore(session.Data, columnName);
 
             session.MappingSet.Steps.Add(new ActionStep
             {
@@ -73,6 +78,9 @@ namespace FileMappingEngine.Lib.Services
 
         public string AddColumnCore(DataState dataState, string direction, string anchorId, string? newName, Type? dataType = null)
         {
+            if (dataState == null || dataState.CurrentData == null)
+                throw new InvalidOperationException("No data loaded.");
+
             string newColumnName = newName ?? GenerateColumnName(dataState);
 
             int index = CalculateColumnIndex(dataState, anchorId, direction);
@@ -82,11 +90,14 @@ namespace FileMappingEngine.Lib.Services
 
             return newColumnName;
         }
-        public void AddColumn(DataSession session, DataState dataState, string direction, string anchorId, string? newName)
+        public void AddColumn(DataSession session, string direction, string anchorId, string? newName)
         {
-            SavePreviousState(session, dataState);
+            if (session.Data == null)
+                throw new InvalidOperationException("No data loaded.");
 
-            string newColumnName = AddColumnCore(dataState, direction, anchorId, newName);
+            SavePreviousState(session);
+
+            string newColumnName = AddColumnCore(session.Data, direction, anchorId, newName);
 
             session.MappingSet.Steps.Add(new ActionStep
             {
@@ -101,11 +112,14 @@ namespace FileMappingEngine.Lib.Services
             });
         }
 
-        public void RenameColumn(DataSession session, DataState dataState, string oldName, string newName)
+        public void RenameColumn(DataSession session, string oldName, string newName)
         {
-            SavePreviousState(session, dataState);
+            if (session.Data == null)
+                throw new InvalidOperationException("No data loaded.");
 
-            RenameColumnCore(dataState, oldName, newName);
+            SavePreviousState(session);
+
+            RenameColumnCore(session.Data, oldName, newName);
 
             session.MappingSet.Steps.Add(new ActionStep
             {
@@ -121,6 +135,9 @@ namespace FileMappingEngine.Lib.Services
         }
         public void RenameColumnCore(DataState dataState, string oldName, string newName)
         {
+            if (dataState == null || dataState.CurrentData == null)
+                throw new InvalidOperationException("No data loaded.");
+
             if (!dataState.CurrentData.Columns.Contains(oldName))
                 throw new ArgumentException($"Column '{oldName}' does not exist.");
             if (dataState.CurrentData.Columns.Contains(newName))
@@ -129,15 +146,15 @@ namespace FileMappingEngine.Lib.Services
             dataState.CurrentData.Columns[oldName]?.ColumnName = newName;
         }
 
-        public void MergeColumns(DataSession session, DataState dataState, ColumnReference first, ColumnReference second, string separator, string? resultColumnName)
+        public void MergeColumns(DataSession session, ColumnReference first, ColumnReference second, string separator, string? resultColumnName)
         {
-            if (dataState == null)
+            if (session.Data == null)
                 throw new InvalidOperationException("No file loaded.");
 
-            if (dataState.CurrentData == null)
+            if (session.Data.CurrentData == null)
                 throw new InvalidOperationException("Current data not available.");
 
-            SavePreviousState(session, dataState);
+            SavePreviousState(session);
 
             string targetColumn =
                 string.IsNullOrWhiteSpace(resultColumnName)
@@ -147,11 +164,11 @@ namespace FileMappingEngine.Lib.Services
 
             if (targetColumn != first.Name)
             {
-                AddColumnCore(dataState, "right", first.Name, targetColumn);
+                AddColumnCore(session.Data, "right", first.Name, targetColumn);
             }
 
 
-            foreach (DataRow row in dataState.CurrentData.Rows)
+            foreach (DataRow row in session.Data.CurrentData.Rows)
             {
                 string firstValue = row[first.Name]?.ToString() ?? "";
                 string secondValue = row[second.Name]?.ToString() ?? "";
@@ -174,25 +191,28 @@ namespace FileMappingEngine.Lib.Services
 
             if (targetColumn != first.Name)
             {
-                RemoveColumnCore(dataState, first.Name);
+                RemoveColumnCore(session.Data, first.Name);
             }
 
-            RemoveColumnCore(dataState, second.Name);
+            RemoveColumnCore(session.Data, second.Name);
         }
 
-        public void SortData(DataSession session, DataState dataState, string columnName, bool ascending)
+        public void SortData(DataSession session, string columnName, bool ascending)
         {
-            if (dataState == null)
+            if (session.Data == null)
                 throw new InvalidOperationException("No file loaded.");
-            SavePreviousState(session, dataState);
+            SavePreviousState(session);
 
-            SortDataCore(dataState, columnName, ascending);
+            SortDataCore(session.Data, columnName, ascending);
 
-            dataState.SortedColumn = columnName;
-            dataState.SortAscending = ascending;
+            session.Data.SortedColumn = columnName;
+            session.Data.SortAscending = ascending;
         }
         public void SortDataCore(DataState dataState, string columnName, bool ascending)
         {
+            if (dataState.CurrentData == null)
+                throw new InvalidOperationException("Current data not available.");
+
             if (!dataState.CurrentData.Columns.Contains(columnName))
                 throw new ArgumentException($"Column '{columnName}' does not exist.");
 
@@ -204,18 +224,18 @@ namespace FileMappingEngine.Lib.Services
             dataState.CurrentData = view.ToTable();
         }
 
-        public void SetColumnDataType(DataSession session, DataState dataState, string columnName, Type dataType)
+        public void SetColumnDataType(DataSession session, string columnName, Type dataType)
         {
-            if (dataState == null)
+            if (session.Data == null)
                 throw new InvalidOperationException("No file loaded.");
-            if (dataState.CurrentData == null)
+            if (session.Data.CurrentData == null)
                 throw new InvalidOperationException("Current data not available.");
-            if (!dataState.CurrentData.Columns.Contains(columnName))
+            if (!session.Data.CurrentData.Columns.Contains(columnName))
                 throw new ArgumentException($"Column '{columnName}' does not exist.");
 
-            SavePreviousState(session, dataState);
+            SavePreviousState(session);
 
-            SetColumnDataTypeCore(dataState, columnName, dataType);
+            SetColumnDataTypeCore(session.Data, columnName, dataType);
 
             session.MappingSet.Steps.Add(new ActionStep
             {
@@ -230,6 +250,9 @@ namespace FileMappingEngine.Lib.Services
         }
         public void SetColumnDataTypeCore(DataState dataState, string columnName, Type dataType)
         {
+            if (dataState.CurrentData == null)
+                throw new InvalidOperationException("Current data not available.");
+
             if (!dataState.CurrentData.Columns.Contains(columnName))
                 throw new ArgumentException($"Column '{columnName}' does not exist.");
 
@@ -278,9 +301,14 @@ namespace FileMappingEngine.Lib.Services
             newColumn.SetOrdinal(ordinal);
         }
 
-        private void SavePreviousState(DataSession session, DataState dataState)
+        private void SavePreviousState(DataSession session)
         {
-            dataState?.PreviousData = dataState.CurrentData.Copy();
+            if (session.Data == null)
+                throw new InvalidOperationException("No data loaded.");
+            if (session.Data.CurrentData == null)
+                throw new InvalidOperationException("No current data loaded.");
+
+            session.Data.PreviousData = session.Data.CurrentData.Copy();
 
             previousSteps.Clear();
             previousSteps.AddRange(session.MappingSet.Steps);
@@ -301,6 +329,9 @@ namespace FileMappingEngine.Lib.Services
 
         private string GenerateColumnName(DataState dataState)
         {
+            if (dataState.CurrentData == null)
+                throw new InvalidOperationException("No current data loaded.");
+
             string baseName = "NewColumn";
             string name;
 
@@ -318,6 +349,9 @@ namespace FileMappingEngine.Lib.Services
 
         private int CalculateColumnIndex(DataState dataState, string anchorId, string direction)
         {
+            if (dataState.CurrentData == null)
+                throw new InvalidOperationException("No current data loaded.");
+
             int anchorIndex = dataState.CurrentData.Columns.IndexOf(anchorId);
             if (anchorIndex == -1)
                 throw new ArgumentException($"Anchor column '{anchorId}' does not exist.");
@@ -331,20 +365,23 @@ namespace FileMappingEngine.Lib.Services
 
         public bool IsColumnNameTaken(DataState dataState, string columnName)
         {
+            if (dataState.CurrentData == null)
+                throw new InvalidOperationException("No current data loaded.");
+
             return dataState.CurrentData.Columns.Contains(columnName);
         }
 
-        public void ApplyFormulaToColumn(DataSession session, DataState dataState, string columnName, string formula)
+        public void ApplyFormulaToColumn(DataSession session, string columnName, string formula)
         {
-            if (dataState == null)
-                throw new InvalidOperationException("No file loaded.");
+            if (session.Data == null || session.Data.CurrentData == null)
+                throw new InvalidOperationException("No data loaded.");
 
-            if (!dataState.CurrentData.Columns.Contains(columnName))
+            if (!session.Data.CurrentData.Columns.Contains(columnName))
                 throw new ArgumentException($"Column '{columnName}' does not exist.");
 
-            SavePreviousState(session, dataState);
+            SavePreviousState(session);
 
-            ApplyFormulaToColumnCore(dataState, columnName, formula);
+            ApplyFormulaToColumnCore(session.Data, columnName, formula);
 
             session.MappingSet.Steps.Add(new ActionStep
             {
@@ -359,7 +396,7 @@ namespace FileMappingEngine.Lib.Services
         }
         public void ApplyFormulaToColumnCore(DataState dataState, string columnName, string formula)
         {
-            if (dataState == null)
+            if (dataState == null || dataState.CurrentData == null)
                 throw new InvalidOperationException("No file loaded.");
 
             if (!dataState.CurrentData.Columns.Contains(columnName))
