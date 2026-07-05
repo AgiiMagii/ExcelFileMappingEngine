@@ -180,11 +180,13 @@ namespace FileMappingEngine.Lib.Services
             }
             session.MappingSet.Steps.Add(new ActionStep
             {
-                ActionType = "RenameColumn",
+                ActionType = "MergeColumns",
                 ColumnId = first.Name,
                 Order = session.MappingSet.Steps.Count + 1,
                 Parameters = new Dictionary<string, object>
                 {
+                    ["SecondColumnId"] = second.Name,
+                    ["Separator"] = separator,
                     ["NewName"] = targetColumn
                 }
             });

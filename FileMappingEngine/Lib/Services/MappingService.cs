@@ -17,6 +17,8 @@ namespace FileMappingEngine.Lib.Services
         {
             if (session.File == null)
                 throw new InvalidOperationException("No file loaded.");
+            if (session.Data == null)
+                throw new InvalidOperationException("Current data not available.");
 
             if (session.Data.SortedColumn != null &&
                 session.Data.SortAscending.HasValue)
@@ -40,11 +42,12 @@ namespace FileMappingEngine.Lib.Services
 
             JsonService.CreateJson(session.MappingSet, filePath);
         }
+
         public void ApplyMappingSet(DataSession session, DataService dataService, string filePath)
         {
             if (session.File == null)
                 throw new InvalidOperationException("No file loaded.");
-            if (session.Data.CurrentData == null)
+            if (session.Data == null || session.Data.CurrentData == null)
                 throw new InvalidOperationException("Current data not available.");
 
             string json = File.ReadAllText(filePath);
@@ -65,10 +68,14 @@ namespace FileMappingEngine.Lib.Services
                 IsApplyingMapping = false;
             }
         }
+
         private void ExecuteMappingSteps(MappingSet mapping, DataSession session, DataService dataService)
         {
             foreach (var step in mapping.Steps.OrderBy(s => s.Order))
             {
+                if (session.Data == null)
+                    throw new InvalidOperationException("Current data not available.");
+
                 switch (step.ActionType)
                 {
                     case "DeleteColumn":
@@ -97,10 +104,11 @@ namespace FileMappingEngine.Lib.Services
                     case "MergeColumns":
                         if (step.Parameters == null)
                             throw new InvalidOperationException("Parameters missing for MergeColumns action.");
-                        string firstColumnName = step.Parameters["FirstColumn"].ToString() ?? throw new InvalidOperationException("First column name missing.");
-                        string secondColumnName = step.Parameters["SecondColumn"].ToString() ?? throw new InvalidOperationException("Second column name missing.");
+                        string firstColumnName = step.ColumnId ?? throw new InvalidOperationException("First column name missing.");
+                        string secondColumnName = step.Parameters["SecondColumnId"].ToString() ?? throw new InvalidOperationException("Second column name missing.");
                         string separator = step.Parameters["Separator"].ToString() ?? throw new InvalidOperationException("Separator missing.");
-                        dataService.MergeColumns(session, new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, step.ColumnId);
+                        string? newColumnName = step.Parameters.TryGetValue("NewName", out object? newNameObj) ? newNameObj.ToString() : step.ColumnId;
+                        dataService.MergeColumns(session, new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, newColumnName);
                         break;
                     case "Sort":
                         if (step.Parameters == null)
