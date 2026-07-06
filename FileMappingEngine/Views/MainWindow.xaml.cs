@@ -61,9 +61,6 @@ namespace FileMappingEngine
 
         private void GenerateMappingSetButtons()
         {
-            using var conn = new Npgsql.NpgsqlConnection("Host=localhost;Port=5432;Username=postgres;Password=GerberaSpotlight;Database=fme");
-            conn.Open();
-            MessageBox.Show("Connected to PostgreSQL database successfully!");
             mappingPanel.Children.Clear();
 
             foreach (string mappingPath in appManager.GetExistingMappings())
