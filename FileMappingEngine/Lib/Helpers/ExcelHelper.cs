@@ -124,6 +124,8 @@ namespace FileMappingEngine.Lib.Helpers
 
         public static void SaveFile(string filePath, DataTable dt, List<List<string>> ignoredRows = null)
         {
+            ignoredRows ??= [];
+
             using XLWorkbook workbook = new();
             var ws = workbook.Worksheets.Add("Sheet1");
 

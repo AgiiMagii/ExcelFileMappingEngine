@@ -21,7 +21,6 @@ namespace FileMappingEngine.Views
     public partial class FormulaBuilderControl : UserControl
     {
         private readonly AppManager _appManager;
-        private List<ColumnReference>? _columns;
         private readonly string _columnName;
 
         public FormulaBuilderControl(string columnName, AppManager appManager)
@@ -48,23 +47,17 @@ namespace FileMappingEngine.Views
             Window.GetWindow(this)?.Close();
         }
 
-        private List<ColumnReference> GetColumns()
-        {
-            _columns = [.. _appManager.GetDataColumns()
-            .Where(c => c.Id != _columnName)];
-
-            return _columns;
-        }
-
         private void LoadComboBox()
         {
-            _columns = GetColumns();
-            if (_columns != null)
-            {
-                ColumnSelectorComboBox.ItemsSource = _columns;
-                ColumnSelectorComboBox.DisplayMemberPath = "Name";
-                ColumnSelectorComboBox.SelectedValuePath = "Id";
-            }
+            var columns = _appManager.GetDataColumns()
+            .Where(c => c.Id != _columnName)
+            .ToList();
+
+            ColumnSelectorComboBox.ItemsSource = columns;
+
+            ColumnSelectorComboBox.DisplayMemberPath = "Name";
+            ColumnSelectorComboBox.SelectedValuePath = "Id";
+
         }
 
         private void SelectedColumnChanged(object sender, SelectionChangedEventArgs e)
@@ -76,7 +69,7 @@ namespace FileMappingEngine.Views
                 ColumnSelectorComboBox.SelectedItem = null;
             }
         }
-        
+
         private void InsertFormulaText(string text)
         {
             int caret = FormulaTextBox.CaretIndex;

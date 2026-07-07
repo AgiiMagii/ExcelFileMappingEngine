@@ -1,9 +1,11 @@
 ﻿using FileMappingEngine.Lib;
 using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Models;
+using FileMappingEngine.Lib.Sessions;
 using FileMappingEngine.Views;
 using Microsoft.Win32;
 using System.ComponentModel;
+using System.Data;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -50,13 +52,12 @@ namespace FileMappingEngine
 
         private void LoadComboBox()
         {
-            List<string> columns = appManager.GetDataColumns()?.Select(c => c.Name).ToList() ?? new List<string>();
+            List<string> columns = appManager.GetDataColumns()?.Select(c => c.Name).ToList() ?? [];
             CbHeaderRow.Items.Clear();
             for (int i = 1; i <= columns.Count; i++)
             {
                 CbHeaderRow.Items.Add(i);
             }
-
         }
 
         private void GenerateMappingSetButtons()
@@ -81,9 +82,11 @@ namespace FileMappingEngine
 
         private void ReloadGrid()
         {
-            helper.ReloadDataGrid(dataGrid, appManager.Session?.Data?.CurrentData);
+            var data = appManager.CurrentData ?? throw new InvalidOperationException("No data available.");
 
-            helper.UpdateSelectedColumnHeaders(dataGrid,_selectedColumns);
+            helper.ReloadDataGrid(dataGrid, data);
+
+            helper.UpdateSelectedColumnHeaders(dataGrid, _selectedColumns);
 
             if (appManager.Session?.Data?.SortedColumn != null)
             {
@@ -103,7 +106,10 @@ namespace FileMappingEngine
         {
             if (appManager.HasFile)
             {
-                var session = appManager.Session!;
+                DataSession session = appManager.Session!;
+
+                if (session.Data == null || session.Data.CurrentData == null)
+                    throw new Exception("No session or data loaded.");
 
                 if (session.Data.CurrentData.Rows.Count > 0)
                 {
@@ -429,7 +435,9 @@ namespace FileMappingEngine
 
             appManager.RenameColumn(_oldColumnName!, newName);
 
-            helper.ReloadDataGrid(dataGrid, appManager.Session?.Data?.CurrentData);
+            var data = appManager.CurrentData ?? throw new InvalidOperationException("No data available.");
+
+            helper.ReloadDataGrid(dataGrid, data);
 
             RenameColumnOverlay.Visibility = Visibility.Collapsed;
         }
@@ -552,11 +560,14 @@ namespace FileMappingEngine
         {
             if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
                 return;
-            string? columnName = column.Header?.ToString(); // kolonna, kurai tiks pielietota formula
+
+            string? columnName = column.Header?.ToString();
+
             if (string.IsNullOrWhiteSpace(columnName))
                 return;
 
             FormulaBuilderControl formulaBuilder = new(columnName, appManager);
+
             Window dialog = new()
             {
                 Content = formulaBuilder,

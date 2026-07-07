@@ -14,6 +14,9 @@ namespace FileMappingEngine.Lib.Services
         {
             RawExcelData rawData = ExcelHelper.LoadRawData(path);
 
+            if (rawData == null || rawData.Data == null)
+                throw new InvalidOperationException("Failed to load data from the specified file.");
+
             FileState fileState = new FileState
             {
                 FilePath = path,
@@ -35,18 +38,16 @@ namespace FileMappingEngine.Lib.Services
         }
         public void CloseCurrentFile(DataSession session)
         {
-            if (session == null)
-                throw new ArgumentNullException(nameof(session));
+            ArgumentNullException.ThrowIfNull(session);
             session.File = null;
             session.Data = null;
         }
         public void SaveFile(DataSession session, string path, List<List<string>>? ignoredRows = null)
         {
-            if (session == null)
-                throw new ArgumentNullException(nameof(session));
+            ArgumentNullException.ThrowIfNull(session);
             if (session.Data?.CurrentData == null)
                 throw new InvalidOperationException("No data to save.");
-            ExcelHelper.SaveFile(path, session.Data.CurrentData, ignoredRows);
+            ExcelHelper.SaveFile(path, session.Data.CurrentData, ignoredRows?? []);
         }
     }
 }

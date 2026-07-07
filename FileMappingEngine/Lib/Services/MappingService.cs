@@ -50,7 +50,7 @@ namespace FileMappingEngine.Lib.Services
             if (session.Data == null || session.Data.CurrentData == null)
                 throw new InvalidOperationException("Current data not available.");
 
-            string json = File.ReadAllText(filePath);
+            //string json = File.ReadAllText(filePath);
             MappingSet mapping = JsonService.CreateObject<MappingSet>(filePath) ?? throw new InvalidOperationException("Failed to load mapping set from JSON.");
             try
             {
