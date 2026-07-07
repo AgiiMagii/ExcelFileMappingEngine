@@ -2,7 +2,7 @@
 
 .NET WPF application for automated Excel file transformation and mapping.
 
-![Workflow](Docs/workflow.png)
+![Workflow](Docs/workflow (2).png)
 ---
 
 ## About the Project
