@@ -107,12 +107,12 @@ namespace FileMappingEngine.Lib
             _dataService.AddColumn(CurrentSession, direction, anchorId, newName);
         }
 
-        public void SaveMappingSet(string filePath)
+        public async Task SaveMappingSet(string filePath)
         {
             if (CurrentSession == null)
                 throw new InvalidOperationException("No file loaded.");
 
-            _mappingService.SaveMappingSet(CurrentSession, filePath);
+            await _mappingService.SaveMappingSet(CurrentSession, filePath);
         }
 
         public bool IsColumnNameTaken(string columnName)

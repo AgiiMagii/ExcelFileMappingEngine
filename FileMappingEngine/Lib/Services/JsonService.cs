@@ -11,17 +11,17 @@ namespace FileMappingEngine.Lib.Services
 {
     public class JsonService
     {
-        public static bool CreateJson<Entity>(Entity entity, string saveDir) where Entity : class
+        public static string CreateJson<Entity>(Entity entity, string saveDir) where Entity : class
         {
             try
             {
                 string jsonContent = JsonSerializer.Serialize(entity, new JsonSerializerOptions { WriteIndented = true });
                 IOFile.WriteAllText(saveDir, jsonContent);
-                return true;
+                return jsonContent;
             }
             catch
             {
-                return false;
+                return string.Empty;
             }
         }
         public static T? CreateObject<T>(string filePath) where T : class

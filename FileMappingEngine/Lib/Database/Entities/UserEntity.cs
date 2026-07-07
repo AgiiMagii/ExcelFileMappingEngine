@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace FileMappingEngine.Lib.Models
+namespace FileMappingEngine.Lib.Database.Entities
 {
-    public class ModelUser
+    public class UserEntity
     {
         public long Id { get; set; }
         public required string Email { get; set; }

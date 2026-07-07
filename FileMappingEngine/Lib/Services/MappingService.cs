@@ -1,9 +1,12 @@
 ﻿using ClosedXML.Excel;
+using FileMappingEngine.Lib.Database.Entities;
+using FileMappingEngine.Lib.Database.Repositories;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Sessions;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
@@ -12,8 +15,13 @@ namespace FileMappingEngine.Lib.Services
     public class MappingService
     {
         private bool IsApplyingMapping { get; set; }
-        
-        public void SaveMappingSet(DataSession session, string filePath)
+        private readonly MappingRepository mappingRepository;
+
+        public MappingService(MappingRepository mappingRepository)
+        {
+            this.mappingRepository = mappingRepository;
+        }
+        public async Task SaveMappingSet(DataSession session, string filePath)
         {
             if (session.File == null)
                 throw new InvalidOperationException("No file loaded.");
@@ -40,7 +48,18 @@ namespace FileMappingEngine.Lib.Services
             session.MappingSet.Name = fileName;
             session.MappingSet.HeaderRow = session.Data.HeaderRowIndex;
 
-            JsonService.CreateJson(session.MappingSet, filePath);
+            string json = JsonService.CreateJson(session.MappingSet, filePath);
+
+            long UserId = 1; // Replace with actual user ID retrieval logic if needed
+            long fileId = 1; // Assuming session.File.Id is the correct file ID
+
+            
+            CreateMappingEntity(UserId, fileId, fileName, json);
+            if (mappingRepository == null)
+            {
+                throw new InvalidOperationException("Mapping repository is not initialized.");
+            }
+            await mappingRepository.SaveMappingToDb(UserId, fileId, fileName, json);
         }
 
         public void ApplyMappingSet(DataSession session, DataService dataService, string filePath)
@@ -148,6 +167,18 @@ namespace FileMappingEngine.Lib.Services
                         throw new InvalidOperationException($"Unknown action type: {step.ActionType}");
                 }
             }
+        }
+
+        private MappingEntity CreateMappingEntity(long userId, long fileId, string name, string json)
+        {
+            return new MappingEntity
+            {
+                UserId = userId,
+                FileId = fileId,
+                MappingName = name,
+                JsonMapping = json,
+                CreatedAt = DateTime.UtcNow
+            };
         }
     }
 }

@@ -178,9 +178,9 @@ namespace FileMappingEngine
             }
         }
 
-        private void SaveMappingSet_Click(object sender, RoutedEventArgs e)
+        private async void SaveMappingSet_Click(object sender, RoutedEventArgs e)
         {
-            SaveMappingSetToJson();
+            await SaveMappingSetToJson();
         }
 
         private void OnDataGridSorting_Sorting(object sender, DataGridSortingEventArgs e)
@@ -584,7 +584,7 @@ namespace FileMappingEngine
             }
         }
 
-        public void SaveMappingSetToJson()
+        public async Task SaveMappingSetToJson()
         {
             string folderPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MappingSets");
             if (!Directory.Exists(folderPath))
@@ -602,7 +602,7 @@ namespace FileMappingEngine
 
             if (sfd.ShowDialog() == true)
             {
-                appManager.SaveMappingSet(sfd.FileName);
+                await appManager.SaveMappingSet(sfd.FileName);
             }
         }
         

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Dapper;
-using FileMappingEngine.Lib.Models;
+using FileMappingEngine.Lib.Database.Entities;
 
 namespace FileMappingEngine.Lib.Database.Repositories
 {
@@ -15,11 +15,11 @@ namespace FileMappingEngine.Lib.Database.Repositories
             _dbConnFactory = dbConnFactory;
         }
 
-        public async Task<List<ModelUser>> GetAllUsersAsync()
-        {
-            using var connection = _dbConnFactory.CreateConnection();
-            var result = await connection.QueryAsync<ModelUser>("SELECT * FROM Users");
-            return result.ToList();
-        }
+        //public async Task<List<UserEntity>> GetAllUsersAsync()
+        //{
+        //    using var connection = _dbConnFactory.CreateConnection();
+        //    var result = await connection.QueryAsync<UserEntity>("SELECT * FROM Users");
+        //    return result.ToList();
+        //}
     }
 }
