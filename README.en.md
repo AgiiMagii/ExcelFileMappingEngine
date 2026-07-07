@@ -3,7 +3,7 @@
 .NET WPF application for automated Excel file transformation and mapping.
 
 ![Workflow](Docs/workflow%20(2).png)
----
+
 
 ## About the Project
 
@@ -15,7 +15,6 @@ The first prototype was created as a Windows Forms application using .NET Core. 
 
 Because of that, I decided to start over and build a more flexible solution — a tool that could be used to transform and prepare different Excel files according to user-defined rules.
 
----
 
 ## Project Idea
 
@@ -38,7 +37,6 @@ The main concept:
 
 The goal is to replace repetitive manual Excel preparation with an automated and reusable process.
 
----
 
 ## Current Development Status
 
@@ -58,7 +56,6 @@ At this stage, the application is able to:
 
 Before the current architecture refactoring, the saved mappings were already successfully tested in real usage scenarios.
 
----
 
 ## Architecture and Refactoring
 
@@ -78,7 +75,6 @@ Main components:
 * **ExcelService** — handles Excel data processing;
 * **FileState** — stores the state of the currently opened file.
 
----
 
 ## Data Processing Approach
 
@@ -98,7 +94,6 @@ This approach allows:
 * rebuilding the table structure from the original data;
 * keeping the original source data unchanged.
 
----
 
 ## Future Plans
 
@@ -114,7 +109,6 @@ Example:
 
 If an Excel file contains customer data, the application could automatically assign the correct manager to each customer using an additional data source.
 
----
 
 ## Validation and Safety
 
@@ -129,7 +123,6 @@ Planned features:
 
 The goal is to make the application safer and easier to use by guiding the user instead of letting them try random configurations.
 
----
 
 ## Goal
 
