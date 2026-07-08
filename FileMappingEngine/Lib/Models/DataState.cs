@@ -17,8 +17,6 @@ namespace FileMappingEngine.Lib.Models
 
         public DataTable? PreviousData { get; set; }
 
-        public MappingSet? CurrentMapping { get; set; }
-
         public List<string[]>? IgnoredRows { get; set; }
 
         public List<ColumnReference> Columns { get; set; } = new();

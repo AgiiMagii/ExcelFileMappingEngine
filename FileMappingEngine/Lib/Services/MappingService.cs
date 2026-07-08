@@ -14,7 +14,6 @@ namespace FileMappingEngine.Lib.Services
 {
     public class MappingService
     {
-        private bool IsApplyingMapping { get; set; }
         private readonly MappingRepository mappingRepository;
 
         public MappingService(MappingRepository mappingRepository)
@@ -53,16 +52,12 @@ namespace FileMappingEngine.Lib.Services
             long UserId = 1; // Replace with actual user ID retrieval logic if needed
             long fileId = 1; // Assuming session.File.Id is the correct file ID
 
+
+            await CreateMapping(UserId, fileId, fileName, json);
             
-            CreateMappingEntity(UserId, fileId, fileName, json);
-            if (mappingRepository == null)
-            {
-                throw new InvalidOperationException("Mapping repository is not initialized.");
-            }
-            await mappingRepository.SaveMappingToDb(UserId, fileId, fileName, json);
         }
 
-        public void ApplyMappingSet(DataSession session, DataService dataService, string filePath)
+        public async Task ApplyMappingSetAsync(DataSession session, DataService dataService, long id)
         {
             if (session.File == null)
                 throw new InvalidOperationException("No file loaded.");
@@ -70,22 +65,30 @@ namespace FileMappingEngine.Lib.Services
                 throw new InvalidOperationException("Current data not available.");
 
             //string json = File.ReadAllText(filePath);
-            MappingSet mapping = JsonService.CreateObject<MappingSet>(filePath) ?? throw new InvalidOperationException("Failed to load mapping set from JSON.");
-            try
+            MappingSet mapping = await GetMappingById(id) ?? throw new InvalidOperationException("Mapping set not found.");
+            int headerRow = mapping.HeaderRow;
+
+            dataService.UpdateHeaderRow(session.Data, headerRow);
+
+            ExecuteMappingSteps(mapping, session, dataService);
+        }
+
+        public async Task<MappingSet?> GetMappingById(long id)
+        {
+            var entity = await mappingRepository.GetMappingByIdAsync(id);
+
+            if (entity == null)
+                return null;
+            var dataJson = entity.Data;
+            var data = JsonService.CreateObject<MappingSet>(dataJson);
+
+            return new MappingSet
             {
-                IsApplyingMapping = true;
-
-                int headerRow = mapping.HeaderRow;
-
-                dataService.UpdateHeaderRow(session.Data, headerRow);
-
-                ExecuteMappingSteps(mapping, session, dataService);
-
-            }
-            finally
-            {
-                IsApplyingMapping = false;
-            }
+                Id = entity.Id,
+                Name = entity.Name,
+                HeaderRow = data?.HeaderRow ?? 0,
+                Steps = data?.Steps ?? new List<ActionStep>()
+            };
         }
 
         private void ExecuteMappingSteps(MappingSet mapping, DataSession session, DataService dataService)
@@ -169,16 +172,28 @@ namespace FileMappingEngine.Lib.Services
             }
         }
 
-        private MappingEntity CreateMappingEntity(long userId, long fileId, string name, string json)
+        private async Task CreateMapping(long userId, long fileId, string name, string json)
         {
-            return new MappingEntity
+            MappingEntity mapping = new MappingEntity
             {
                 UserId = userId,
                 FileId = fileId,
-                MappingName = name,
-                JsonMapping = json,
-                CreatedAt = DateTime.UtcNow
+                Name = name,
+                Data = json,
             };
+
+            await mappingRepository.AddMappingAsync(mapping);
+        }
+
+        public async Task<List<MappingSet>> GetMappingSetsAsync()
+        {
+            var entities = await mappingRepository.GetAllMappingNamesAsync();
+
+            return entities.Select(e => new MappingSet
+            {
+                Id = e.Id,
+                Name = e.Name
+            }).ToList();
         }
     }
 }

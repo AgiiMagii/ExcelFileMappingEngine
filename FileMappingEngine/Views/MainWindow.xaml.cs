@@ -1,4 +1,7 @@
-﻿using FileMappingEngine.Lib;
+﻿using DocumentFormat.OpenXml.InkML;
+using FileMappingEngine.Lib;
+using FileMappingEngine.Lib.Database.Entities;
+using FileMappingEngine.Lib.Database.Repositories;
 using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Sessions;
@@ -60,22 +63,18 @@ namespace FileMappingEngine
             }
         }
 
-        private void GenerateMappingSetButtons()
+        private async void GenerateMappingSetButtons()
         {
             mappingPanel.Children.Clear();
-
-            foreach (string mappingPath in appManager.GetExistingMappings())
+            List<MappingSet> mappings = (await appManager.GetAvailableMappings()).ToList();
+            foreach (var mapping in mappings)
             {
-                Button button = new()
+                var button = new Button
                 {
-                    Content = System.IO.Path.GetFileNameWithoutExtension(mappingPath),
-                    Tag = mappingPath,
-                    Margin = new Thickness(5),
-                    Padding = new Thickness(10)
+                    Content = mapping.Name,
+                    Tag = mapping.Id
                 };
-
                 button.Click += MappingSetButton_Click;
-
                 mappingPanel.Children.Add(button);
             }
         }
@@ -94,11 +93,14 @@ namespace FileMappingEngine
             }
         }
 
-        private void MappingSetButton_Click(object sender, RoutedEventArgs e)
+        private async void MappingSetButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button button || button.Tag is not string filePath)
+            if (sender is not Button button)
                 return;
-            appManager.ApplyMappingSet(filePath);
+
+            long id = Convert.ToInt64(button.Tag);
+            //appManager.ApplyMappingSet(filePath);
+            await appManager.ApplyMappingSetAsync(id);
             ReloadGrid();
         }
 

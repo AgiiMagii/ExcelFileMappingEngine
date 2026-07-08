@@ -75,12 +75,9 @@ namespace FileMappingEngine.Lib
             _fileService.CloseCurrentFile(session);
         }
 
-        public string[] GetExistingMappings()
+        public async Task<List<MappingSet>> GetAvailableMappings()
         {
-            if (_mappingRepository == null)
-                throw new InvalidOperationException("Mapping repository not initialized.");
-
-            return _mappingRepository.GetAllMappingFiles();
+            return await _mappingService.GetMappingSetsAsync();
         }
 
         public void SaveFile(string filePath)
@@ -131,12 +128,12 @@ namespace FileMappingEngine.Lib
             _dataService.RenameColumn(CurrentSession, oldName, newName);
         }
 
-        public void ApplyMappingSet(string filePath)
+        public async Task ApplyMappingSetAsync(long id)
         {
             if (CurrentSession == null)
                 throw new InvalidOperationException("No file loaded.");
 
-            _mappingService.ApplyMappingSet(CurrentSession, _dataService, filePath);
+            await _mappingService.ApplyMappingSetAsync(CurrentSession, _dataService, id);
         }
 
         public void ResetTable()

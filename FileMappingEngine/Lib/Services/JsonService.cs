@@ -24,20 +24,30 @@ namespace FileMappingEngine.Lib.Services
                 return string.Empty;
             }
         }
-        public static T? CreateObject<T>(string filePath) where T : class
+        //public static T? CreateObject<T>(string filePath) where T : class
+        //{
+        //    try
+        //    {
+        //        string content = IOFile.ReadAllText(filePath);
+        //        return JsonSerializer.Deserialize<T>(content);
+        //    }
+        //    catch
+        //    {
+        //        return null;
+        //    }
+
+        //}
+        public static T? CreateObject<T>(string json)
         {
             try
             {
-                string content = IOFile.ReadAllText(filePath);
-                return JsonSerializer.Deserialize<T>(content);
+                return JsonSerializer.Deserialize<T>(json);
             }
             catch
             {
-                return null;
+                return default;
             }
-
         }
 
-        
     }
 }

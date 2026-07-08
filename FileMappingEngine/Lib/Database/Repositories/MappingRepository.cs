@@ -1,4 +1,6 @@
-﻿using FileMappingEngine.Lib.Models;
+﻿using Dapper;
+using FileMappingEngine.Lib.Database.Entities;
+using FileMappingEngine.Lib.Models;
 using Npgsql;
 using NpgsqlTypes;
 using System;
@@ -18,41 +20,33 @@ namespace FileMappingEngine.Lib.Database.Repositories
             _dbConnFactory = dbConnFactory;
         }
 
-        public async Task SaveMappingToDb(long userId, long fileId, string name, string json)
+        public async Task<long> AddMappingAsync(MappingEntity mapping)
         {
             using var connection = await _dbConnFactory.CreateConnectionAsync();
-            using var command = (DbCommand)connection.CreateCommand();
+            var sql = @"
+                INSERT INTO mappings (user_id, file_id, name, data)
+                VALUES (@UserId, @FileId, @Name, @Data::jsonb)
+                RETURNING id;";
 
-            command.CommandText = "INSERT INTO mappings (user_id, file_id, name, data) VALUES (@UserId, @FileId, @Name, @MappingJson)";
-            var parameter = command.CreateParameter();
-            parameter.ParameterName = "@UserId";
-            parameter.Value = userId;
-            command.Parameters.Add(parameter);
-            parameter = command.CreateParameter();
-            parameter.ParameterName = "@FileId";
-            parameter.Value = fileId;
-            command.Parameters.Add(parameter);
-            parameter = command.CreateParameter();
-            parameter.ParameterName = "@Name";
-            parameter.Value = name;
-            command.Parameters.Add(parameter);
-            parameter = command.CreateParameter();
-            parameter.ParameterName = "@MappingJson";
-            parameter.Value = json;
-            ((NpgsqlParameter)parameter).NpgsqlDbType = NpgsqlDbType.Jsonb;
-            command.Parameters.Add(parameter);
-
-            await command.ExecuteNonQueryAsync();       
+            return await connection.ExecuteScalarAsync<long>(sql, mapping);
         }
-        public string[] GetAllMappingFiles()
+
+        public async Task<List<MappingEntity>> GetAllMappingNamesAsync()
         {
-            var folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MappingSets");
+            using var connection = await _dbConnFactory.CreateConnectionAsync();
 
-            if (!Directory.Exists(folderPath))
-                Directory.CreateDirectory(folderPath);
+            var sql = @"SELECT id, name FROM mappings;";
 
-            return Directory.GetFiles(folderPath, "*.json");
+            var result = await connection.QueryAsync<MappingEntity>(sql);
+
+            return result.ToList();
         }
 
+        public async Task<MappingEntity?> GetMappingByIdAsync(long id)
+        {
+            using var connection = await _dbConnFactory.CreateConnectionAsync();
+            var sql = "SELECT * FROM mappings WHERE id = @Id";
+            return await connection.QuerySingleOrDefaultAsync<MappingEntity>(sql, new { Id = id });
+        }
     }
 }
