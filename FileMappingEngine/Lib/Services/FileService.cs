@@ -27,8 +27,10 @@ namespace FileMappingEngine.Lib.Services
             {
                 RawData = rawData,
                 HeaderRowIndex = 1,
-                CurrentData = ExcelHelper.BuildDataTable(rawData.Data, 1)
+                
             };
+
+            ExcelHelper.BuildCurrentData(dataState);
 
             return new DataSession
             {

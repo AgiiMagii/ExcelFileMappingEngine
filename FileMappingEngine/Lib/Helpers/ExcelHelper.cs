@@ -60,22 +60,68 @@ namespace FileMappingEngine.Lib.Helpers
             };
         }
 
-        public static DataTable BuildDataTable(DataTable rawData, int headerRowIndex = 1)
+        //public static DataTable BuildDataTable(DataTable rawData, int headerRowIndex = 1)
+        //{
+        //    DataTable dataTable = new();
+        //    FileDefinition fileDefinition = new FileDefinition();
+
+        //    int headerIndex = headerRowIndex - 1;
+
+        //    if (headerIndex >= rawData.Rows.Count)
+        //        throw new ArgumentException("Invalid header row.");
+
+        //    DataRow headerRow = rawData.Rows[headerIndex];
+
+        //    HashSet<string> usedNames = [];
+
+        //    for (int c = 0; c < rawData.Columns.Count; c++)
+        //    {
+        //        string rawName = headerRow[c]?.ToString()?.Trim() ?? "";
+
+        //        string colName =
+        //            GetSafeColumnName(
+        //                rawName,
+        //                c + 1,
+        //                usedNames);
+
+        //        dataTable.Columns.Add(colName, rawData.Columns[c].DataType);
+        //        fileDefinition?.Columns?.Add(new ColumnData
+        //        {
+        //            Name = colName
+        //        });
+        //    }
+            
+
+        //    for (int r = headerIndex + 1; r < rawData.Rows.Count; r++)
+        //    {
+        //        DataRow newRow = dataTable.NewRow();
+
+        //        for (int c = 0; c < rawData.Columns.Count; c++)
+        //        {
+        //            newRow[c] = rawData.Rows[r][c];
+        //        }
+
+        //        dataTable.Rows.Add(newRow);
+        //    }
+        //    return dataTable;
+        //}
+        public static void BuildCurrentData(DataState dataState)
         {
             DataTable dataTable = new();
+            FileDefinition fileDefinition = new FileDefinition();
 
-            int headerIndex = headerRowIndex - 1;
+            int headerIndex = dataState.HeaderRowIndex - 1;
 
-            if (headerIndex >= rawData.Rows.Count)
+            if (headerIndex >= dataState?.RawData?.Data?.Rows.Count)
                 throw new ArgumentException("Invalid header row.");
 
-            DataRow headerRow = rawData.Rows[headerIndex];
+            DataRow? headerRow = dataState?.RawData?.Data?.Rows[headerIndex];
 
             HashSet<string> usedNames = [];
 
-            for (int c = 0; c < rawData.Columns.Count; c++)
+            for (int c = 0; c < dataState?.RawData?.Data?.Columns.Count; c++)
             {
-                string rawName = headerRow[c]?.ToString()?.Trim() ?? "";
+                string rawName = headerRow?[c]?.ToString()?.Trim() ?? "";
 
                 string colName =
                     GetSafeColumnName(
@@ -83,23 +129,28 @@ namespace FileMappingEngine.Lib.Helpers
                         c + 1,
                         usedNames);
 
-                dataTable.Columns.Add(colName, rawData.Columns[c].DataType);
+                dataTable.Columns.Add(colName, dataState.RawData.Data.Columns[c].DataType);
+                fileDefinition?.Columns?.Add(new ColumnData
+                {
+                    Name = colName
+                });
             }
 
-            for (int r = headerIndex + 1; r < rawData.Rows.Count; r++)
+
+            for (int r = headerIndex + 1; r < dataState?.RawData?.Data?.Rows.Count; r++)
             {
                 DataRow newRow = dataTable.NewRow();
 
-                for (int c = 0; c < rawData.Columns.Count; c++)
+                for (int c = 0; c < dataState?.RawData?.Data?.Columns.Count; c++)
                 {
-                    newRow[c] = rawData.Rows[r][c];
+                    newRow[c] = dataState?.RawData?.Data?.Rows[r]?[c];
                 }
 
                 dataTable.Rows.Add(newRow);
             }
-            return dataTable;
+            dataState?.CurrentData = dataTable;
+            dataState?.FileDefinition = fileDefinition;
         }
-
         private static string GetSafeColumnName(string rawName, int index, HashSet<string> usedNames)
         {
             if (string.IsNullOrWhiteSpace(rawName))

@@ -19,6 +19,6 @@ namespace FileMappingEngine.Lib.Models
 
         public List<string[]>? IgnoredRows { get; set; }
 
-        public List<ColumnReference> Columns { get; set; } = new();
+        public FileDefinition? FileDefinition { get; set; }
     }
 }

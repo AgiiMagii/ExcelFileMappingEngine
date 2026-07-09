@@ -8,23 +8,20 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
+using System.Windows;
 
 namespace FileMappingEngine.Lib.Services
 {
     public class DataService
     {
-        private readonly List<ActionStep> previousSteps = [];
-
-        public void ResetTable(DataSession session)
+        public void ResetTable(DataState dataState)
         {
-            if (session.File == null)
+            if (dataState == null)
                 throw new InvalidOperationException("No file loaded.");
-            if (session.Data == null)
-                throw new InvalidOperationException("Data not loaded.");
-            if (session.Data.RawData?.Data == null)
-                throw new InvalidOperationException("Raw data not loaded.");
-            session.Data.CurrentData = ExcelHelper.BuildDataTable(session.Data.RawData.Data, session.Data.HeaderRowIndex);
-            ClearSteps(session);
+            
+            ExcelHelper.BuildCurrentData(dataState);
+            //dataState.CurrentData = ExcelHelper.BuildDataTable(dataState.RawData.Data, dataState.HeaderRowIndex);
+            //ClearSteps(dataState);
         }
         public void UndoLastAction(DataSession session)
         {
@@ -44,10 +41,12 @@ namespace FileMappingEngine.Lib.Services
                 throw new InvalidOperationException("Raw data not loaded.");
 
             dataState.HeaderRowIndex = newHeaderRow;
-            dataState.CurrentData =
-                ExcelHelper.BuildDataTable(
-                    dataState.RawData.Data,
-                    newHeaderRow);
+            ExcelHelper.BuildCurrentData(dataState);
+            //dataState.CurrentData =
+            //    ExcelHelper.BuildDataTable(
+            //        dataState.RawData.Data,
+            //        newHeaderRow);
+
         }
 
         public void RemoveColumnCore(DataState dataState, string columnName)
@@ -310,9 +309,6 @@ namespace FileMappingEngine.Lib.Services
                 throw new InvalidOperationException("No current data loaded.");
 
             session.Data.PreviousData = session.Data.CurrentData.Copy();
-
-            previousSteps.Clear();
-            previousSteps.AddRange(session.MappingSet.Steps);
         }
 
         public void ClearSteps(DataSession session)

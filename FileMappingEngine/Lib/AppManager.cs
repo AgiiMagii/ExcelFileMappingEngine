@@ -138,10 +138,10 @@ namespace FileMappingEngine.Lib
 
         public void ResetTable()
         {
-            if (CurrentSession == null)
+            if (CurrentSession == null || CurrentSession.Data == null)
                 throw new InvalidOperationException("No file loaded.");
 
-            _dataService.ResetTable(CurrentSession);
+            _dataService.ResetTable(CurrentSession.Data);
         }
 
         public void UndoLastAction()
@@ -173,7 +173,8 @@ namespace FileMappingEngine.Lib
                 {
                     Id = col.ColumnName,
                     Name = col.ColumnName,
-                    Index = index
+                    Index = index,
+                    
                 })];
         }
 
