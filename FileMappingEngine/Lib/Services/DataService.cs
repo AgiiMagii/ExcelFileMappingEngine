@@ -13,7 +13,6 @@ namespace FileMappingEngine.Lib.Services
 {
     public class DataService
     {
-        private readonly FormulaService formulaService = new();
         private readonly List<ActionStep> previousSteps = [];
 
         public void ResetTable(DataSession session)
@@ -405,15 +404,8 @@ namespace FileMappingEngine.Lib.Services
                 throw new ArgumentException(
                     $"Column '{columnName}' does not exist.");
 
-
-            var tokenizer = new FormulaService();
-
-
             var tokens = FormulaService.Tokenize(formula);
-
-
-            var formulaTree = tokenizer.Parse(tokens);
-
+            var formulaTree = FormulaService.Parse(tokens);
 
             ApplyFormula(
                 dataState.CurrentData,
@@ -425,7 +417,7 @@ namespace FileMappingEngine.Lib.Services
         {
             foreach (DataRow row in dataTable.Rows)
             {
-                decimal result = formulaService.Evaluate(formulaTree, row);
+                decimal result = FormulaService.Evaluate(formulaTree, row);
 
                 row[targetColumn] = result;
             }

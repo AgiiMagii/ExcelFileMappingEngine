@@ -9,18 +9,22 @@ using static FileMappingEngine.Lib.Models.Enums;
 
 namespace FileMappingEngine.Lib.Services
 {
-    public class FormulaService
+    public static class FormulaService
     {
-        private List<FormulaToken> _tokens = [];
-
-        private int _position;
-
-        private bool Current(string value)
+        private sealed class ParserState
         {
-            if (_position >= _tokens.Count)
+            public List<FormulaToken> Tokens { get; }
+            public int Position;
+
+            public ParserState(List<FormulaToken> tokens) => Tokens = tokens;
+        }
+
+        private static bool Current(ParserState state, string value)
+        {
+            if (state.Position >= state.Tokens.Count)
                 return false;
 
-            return _tokens[_position].Value == value;
+            return state.Tokens[state.Position].Value == value;
         }
 
         public static List<FormulaToken> Tokenize(string formula)
@@ -110,25 +114,24 @@ namespace FileMappingEngine.Lib.Services
             // pārvērš 1,54 → 1.54 (iekšējais formāts vienmēr dot)
             return Regex.Replace(formula, @"(\d),(\d)", "$1.$2");
         }
-        public FormulaNode Parse(List<FormulaToken> tokens)
+        public static FormulaNode Parse(List<FormulaToken> tokens)
         {
-            _tokens = tokens;
-            _position = 0;
+            var state = new ParserState(tokens);
 
-            return ParseExpression();
+            return ParseExpression(state);
         }
-        private FormulaNode ParseExpression()
+        private static FormulaNode ParseExpression(ParserState state)
         {
-            var left = ParseTerm();
+            var left = ParseTerm(state);
 
 
-            while (Current("+") || Current("-"))
+            while (Current(state, "+") || Current(state, "-"))
             {
-                var op = _tokens[_position].Value;
+                var op = state.Tokens[state.Position].Value;
 
-                _position++;
+                state.Position++;
 
-                var right = ParseTerm();
+                var right = ParseTerm(state);
 
                 left = new FormulaNode
                 {
@@ -144,19 +147,19 @@ namespace FileMappingEngine.Lib.Services
 
             return left;
         }
-        private FormulaNode ParseTerm()
+        private static FormulaNode ParseTerm(ParserState state)
         {
-            FormulaNode left = ParseFactor();
+            FormulaNode left = ParseFactor(state);
 
 
-            while (Current("*") || Current("/"))
+            while (Current(state, "*") || Current(state, "/"))
             {
-                string op = _tokens[_position].Value;
+                string op = state.Tokens[state.Position].Value;
 
-                _position++;
+                state.Position++;
 
 
-                FormulaNode right = ParseFactor();
+                FormulaNode right = ParseFactor(state);
 
 
                 left = new FormulaNode
@@ -174,14 +177,14 @@ namespace FileMappingEngine.Lib.Services
 
             return left;
         }
-        private FormulaNode ParseFactor()
+        private static FormulaNode ParseFactor(ParserState state)
         {
-            var token = _tokens[_position];
+            var token = state.Tokens[state.Position];
 
             // skaitlis
             if (token.Type == TokenType.Number)
             {
-                _position++;
+                state.Position++;
 
                 return new FormulaNode
                 {
@@ -193,7 +196,7 @@ namespace FileMappingEngine.Lib.Services
             // kolonna [Price]
             if (token.Type == TokenType.Column)
             {
-                _position++;
+                state.Position++;
 
                 return new FormulaNode
                 {
@@ -205,18 +208,18 @@ namespace FileMappingEngine.Lib.Services
             // iekavas
             if (token.Type == TokenType.OpenParenthesis)
             {
-                _position++; // izlaižam '('
+                state.Position++; // izlaižam '('
 
-                FormulaNode expression = ParseExpression();
+                FormulaNode expression = ParseExpression(state);
 
-                if (_tokens[_position].Type
+                if (state.Tokens[state.Position].Type
                     != TokenType.CloseParenthesis)
                 {
                     throw new Exception(
                         "Missing closing parenthesis");
                 }
 
-                _position++; // izlaižam ')'
+                state.Position++; // izlaižam ')'
 
                 return expression;
             }
@@ -224,23 +227,23 @@ namespace FileMappingEngine.Lib.Services
             // funkcija
             if (token.Type == TokenType.Function)
             {
-                return ParseFunction();
+                return ParseFunction(state);
             }
 
             throw new Exception(
                 $"Unexpected token {token.Value}");
         }
-        private FormulaNode ParseFunction()
+        private static FormulaNode ParseFunction(ParserState state)
         {
-            FormulaToken functionToken = _tokens[_position];
+            FormulaToken functionToken = state.Tokens[state.Position];
 
-            _position++; // izlaižam funkcijas nosaukumu
+            state.Position++; // izlaižam funkcijas nosaukumu
 
 
-            if (!Current("("))
+            if (!Current(state, "("))
                 throw new Exception("Expected '(' after function");
 
-            _position++; // izlaižam '('
+            state.Position++; // izlaižam '('
 
             var function = new FormulaNode
             {
@@ -254,15 +257,15 @@ namespace FileMappingEngine.Lib.Services
                 }
             };
 
-            while (!Current(")"))
+            while (!Current(state, ")"))
             {
-                FormulaNode argument = ParseExpression();
+                FormulaNode argument = ParseExpression(state);
 
                 function.Arguments.Add(argument);
 
-                if (Current(",") || Current(";"))
+                if (Current(state, ",") || Current(state, ";"))
                 {
-                    _position++; // izlaižam komatu
+                    state.Position++; // izlaižam komatu
                 }
                 else
                 {
@@ -270,14 +273,14 @@ namespace FileMappingEngine.Lib.Services
                 }
             }
 
-            if (!Current(")"))
+            if (!Current(state, ")"))
                 throw new Exception("Missing ')'");
 
-            _position++; // izlaižam ')'
+            state.Position++; // izlaižam ')'
 
             return function;
         }
-        public decimal Evaluate(FormulaNode node, DataRow row)
+        public static decimal Evaluate(FormulaNode node, DataRow row)
         {
             return node.Type switch
             {
@@ -296,7 +299,7 @@ namespace FileMappingEngine.Lib.Services
                 _ => throw new Exception("Unknown node type"),
             };
         }
-        private decimal EvaluateOperator(FormulaNode node, DataRow row)
+        private static decimal EvaluateOperator(FormulaNode node, DataRow row)
         {
             decimal left =
                 Evaluate(node.Left!, row);
@@ -322,7 +325,7 @@ namespace FileMappingEngine.Lib.Services
                 _ => throw new Exception()
             };
         }
-        private decimal EvaluateFunction(FormulaNode node, DataRow row)
+        private static decimal EvaluateFunction(FormulaNode node, DataRow row)
         {
             return node.Function switch
             {
@@ -332,7 +335,7 @@ namespace FileMappingEngine.Lib.Services
                     $"Unsupported function {node.Function}")
             };
         }
-        private decimal EvaluateRound(FormulaNode node, DataRow row)
+        private static decimal EvaluateRound(FormulaNode node, DataRow row)
         {
             if (node.Arguments.Count != 2)
                 throw new InvalidOperationException("ROUND requires 2 arguments.");
