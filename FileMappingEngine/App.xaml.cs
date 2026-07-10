@@ -44,6 +44,7 @@ namespace FileMappingEngine
             services.AddSingleton<DataService>();
             services.AddSingleton<MappingService>();
             services.AddSingleton<MappingRepository>();
+            services.AddSingleton<FileRepository>();
             services.AddSingleton<AppManager>();
             services.AddSingleton(sp =>
             {

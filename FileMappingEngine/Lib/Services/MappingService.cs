@@ -15,17 +15,20 @@ namespace FileMappingEngine.Lib.Services
     public class MappingService
     {
         private readonly MappingRepository mappingRepository;
+        private readonly FileRepository fileRepository;
 
-        public MappingService(MappingRepository mappingRepository)
+        public MappingService(MappingRepository mappingRepository, FileRepository fileRepository)
         {
             this.mappingRepository = mappingRepository;
+            this.fileRepository = fileRepository;
         }
-        public async Task SaveMappingSet(DataSession session, string filePath)
+        public async Task SaveMappingSet(DataSession session, string fileDefName, string mappingName)
         {
             if (session.File == null)
                 throw new InvalidOperationException("No file loaded.");
             if (session.Data == null)
                 throw new InvalidOperationException("Current data not available.");
+            
 
             if (session.Data.SortedColumn != null &&
                 session.Data.SortAscending.HasValue)
@@ -42,21 +45,47 @@ namespace FileMappingEngine.Lib.Services
                 });
             }
 
-            string fileName = Path.GetFileNameWithoutExtension(filePath);
+            if (session.Data.FileDefinition?.Id  == null)
+            {
+                if (session.Data.FileDefinition?.Id == null)
+                {
+                    session.Data.FileDefinition?.Id =
+                        await CreateFileDefinition(session, fileDefName);
+                }
+            }
 
-            session.MappingSet.Name = fileName;
+            session.MappingSet.Name = mappingName;
             session.MappingSet.HeaderRow = session.Data.HeaderRowIndex;
 
-            string json = JsonService.CreateJson(session.MappingSet, filePath);
+            string json = JsonService.CreateJson(session.MappingSet);
 
-            long UserId = 1; // Replace with actual user ID retrieval logic if needed
-            long fileId = 1; // Assuming session.File.Id is the correct file ID
+             // Replace with actual user ID retrieval logic if needed
+            long fileId = session.Data.FileDefinition?.Id ?? 0; // Assuming session.File.Id is the correct file ID
+            long userId = 1;
 
-
-            await CreateMapping(UserId, fileId, fileName, json);
+            await CreateMapping(userId, fileId, mappingName, json);
             
         }
+        public async Task<long> CreateFileDefinition(DataSession session, string fileDefName)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (session.Data == null || session.Data.FileDefinition == null)
+                throw new InvalidOperationException("Current data not available.");
+            if (session.Data.FileDefinition.Columns == null)
+                throw new InvalidOperationException("File definition columns not available.");
 
+            string json = JsonService.CreateJson(session.Data.FileDefinition.Columns);
+
+            FileEntity fileEntity = new FileEntity
+            {
+                Name = fileDefName,
+                FingerPrint = json,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            return await fileRepository.AddFileDefinitionAsync(fileEntity);
+        }
         public async Task ApplyMappingSetAsync(DataSession session, DataService dataService, long id)
         {
             if (session.File == null)
@@ -64,7 +93,6 @@ namespace FileMappingEngine.Lib.Services
             if (session.Data == null || session.Data.CurrentData == null)
                 throw new InvalidOperationException("Current data not available.");
 
-            //string json = File.ReadAllText(filePath);
             MappingSet mapping = await GetMappingById(id) ?? throw new InvalidOperationException("Mapping set not found.");
             int headerRow = mapping.HeaderRow;
 

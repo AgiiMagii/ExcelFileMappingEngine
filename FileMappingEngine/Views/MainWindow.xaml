@@ -248,6 +248,68 @@
             </Border>
 
         </Grid>
+        <Grid x:Name="SaveMappingOverlay"
+      Background="#AA000000"
+      Visibility="Collapsed">
+
+            <Border HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Padding="30"
+            Background="White"
+            Width="500">
+
+                <StackPanel>
+
+                    <!-- Virsraksts -->
+                    <TextBlock Text="Save Mapping"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       Margin="0,0,0,20"
+                       HorizontalAlignment="Center"/>
+
+                    <!-- File Definition -->
+                    <TextBlock Text="File definition name:"
+                       Margin="0,0,0,5"/>
+
+                    <TextBox x:Name="txtFileDefinitionName"
+                     Height="30"
+                     Margin="0,0,0,15"/>
+
+                    <!-- Mapping -->
+                    <TextBlock Text="Mapping name:"
+                       Margin="0,0,0,5"/>
+
+                    <TextBox x:Name="txtMappingName"
+                     Height="30"
+                     Margin="0,0,0,15"/>
+
+                    <!-- Validācija -->
+                    <TextBlock x:Name="txtSaveMappingValidation"
+                       Foreground="Red"
+                       Visibility="Collapsed"
+                       Margin="0,0,0,15"/>
+
+                    <!-- Pogas -->
+                    <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center">
+
+                        <Button Content="Save"
+                        Width="100"
+                        Margin="5"
+                        Click="SaveMapping_Click"/>
+
+                        <Button Content="Cancel"
+                        Width="100"
+                        Margin="5"
+                        Click="CancelSaveMapping_Click"/>
+
+                    </StackPanel>
+
+                </StackPanel>
+
+            </Border>
+
+        </Grid>
     </Grid>
     
 </Window>

@@ -20,7 +20,7 @@ namespace FileMappingEngine.Lib.Services
             FileState fileState = new FileState
             {
                 FilePath = path,
-                FileName = Path.GetFileName(path)
+                FileName = Path.GetFileNameWithoutExtension(path)
             };
 
             DataState dataState = new DataState

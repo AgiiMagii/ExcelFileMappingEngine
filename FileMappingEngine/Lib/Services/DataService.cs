@@ -20,9 +20,8 @@ namespace FileMappingEngine.Lib.Services
                 throw new InvalidOperationException("No file loaded.");
             
             ExcelHelper.BuildCurrentData(dataState);
-            //dataState.CurrentData = ExcelHelper.BuildDataTable(dataState.RawData.Data, dataState.HeaderRowIndex);
-            //ClearSteps(dataState);
         }
+
         public void UndoLastAction(DataSession session)
         {
             if (session.Data == null)
@@ -32,6 +31,7 @@ namespace FileMappingEngine.Lib.Services
             UndoLastStep(session);
             session.Data.CurrentData = session.Data.PreviousData.Copy();
         }
+
         public void UpdateHeaderRow(DataState dataState, int newHeaderRow)
         {
             if (dataState == null)
@@ -42,11 +42,6 @@ namespace FileMappingEngine.Lib.Services
 
             dataState.HeaderRowIndex = newHeaderRow;
             ExcelHelper.BuildCurrentData(dataState);
-            //dataState.CurrentData =
-            //    ExcelHelper.BuildDataTable(
-            //        dataState.RawData.Data,
-            //        newHeaderRow);
-
         }
 
         public void RemoveColumnCore(DataState dataState, string columnName)

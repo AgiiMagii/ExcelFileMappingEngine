@@ -182,7 +182,12 @@ namespace FileMappingEngine
 
         private async void SaveMappingSet_Click(object sender, RoutedEventArgs e)
         {
-            await SaveMappingSetToJson();
+            txtFileDefinitionName.Text = appManager.Session?.Data?.FileDefinition?.Name ?? appManager.Session?.File?.FileName ?? "New File Type";
+
+            txtMappingName.Text =
+                appManager.Session?.MappingSet?.Name ?? "";
+
+            SaveMappingOverlay.Visibility = Visibility.Visible;
         }
 
         private void OnDataGridSorting_Sorting(object sender, DataGridSortingEventArgs e)
@@ -586,32 +591,35 @@ namespace FileMappingEngine
             }
         }
 
-        public async Task SaveMappingSetToJson()
+        public async Task SaveMappingSet()
         {
-            string folderPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MappingSets");
-            if (!Directory.Exists(folderPath))
-                Directory.CreateDirectory(folderPath);
+            string fileDefName = txtFileDefinitionName.Text.Trim();
+            string mappingName = txtMappingName.Text.Trim();
 
-            var sfd = new Microsoft.Win32.SaveFileDialog
+            if (string.IsNullOrWhiteSpace(fileDefName) || string.IsNullOrWhiteSpace(mappingName))
             {
-                InitialDirectory = folderPath,
-                Filter = "JSON files (*.json)|*.json",
-                OverwritePrompt = true,
-                AddExtension = true,
-                DefaultExt = "json",
-                FileName = "NewMappingSet.json"
-            };
-
-            if (sfd.ShowDialog() == true)
-            {
-                await appManager.SaveMappingSet(sfd.FileName);
+                MessageBox.Show("File definition name and mapping name cannot be empty.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
+
+            await appManager.SaveMappingSet(fileDefName, mappingName);
         }
-        
+
+        public async void SaveMapping_Click(object sender, RoutedEventArgs e)
+        {
+            await SaveMappingSet();
+            SaveMappingOverlay.Visibility = Visibility.Collapsed;
+        }
+
         private void Undo_Click(object sender, RoutedEventArgs e)
         {
             appManager.UndoLastAction();
             ReloadGrid();
+        }
+
+        private void CancelSaveMapping_Click(object sender, RoutedEventArgs e)
+        {
+            SaveMappingOverlay.Visibility = Visibility.Collapsed;
         }
     }
 }

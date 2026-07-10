@@ -40,10 +40,6 @@ namespace FileMappingEngine.Lib
 
         public string? CurrentFileName => Session.File?.FileName;
         public bool IsSorted => Session.Data?.SortedColumn != null;
-
-        //public FileState? CurrentFile => CurrentSession?.File;
-        //public DataTable CurrentData => CurrentFile?.CurrentData ?? throw new InvalidOperationException("No file loaded.");
-
         public bool HasFile => CurrentSession != null;
 
         public AppManager(FileService fileService, DataService dataService, MappingRepository mappingRepository, MappingService mappingService)
@@ -104,12 +100,12 @@ namespace FileMappingEngine.Lib
             _dataService.AddColumn(CurrentSession, direction, anchorId, newName);
         }
 
-        public async Task SaveMappingSet(string filePath)
+        public async Task SaveMappingSet(string fileDefName, string mappingName)
         {
             if (CurrentSession == null)
                 throw new InvalidOperationException("No file loaded.");
 
-            await _mappingService.SaveMappingSet(CurrentSession, filePath);
+            await _mappingService.SaveMappingSet(CurrentSession, fileDefName, mappingName);
         }
 
         public bool IsColumnNameTaken(string columnName)
