@@ -1,7 +1,9 @@
 ﻿using ClosedXML.Excel;
+using FileMappingEngine.Lib.Services;
 using System;
 using System.Collections.Generic;
 using System.Drawing.Imaging.Effects;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace FileMappingEngine.Lib.Helpers
@@ -49,6 +51,22 @@ namespace FileMappingEngine.Lib.Helpers
                     cell.SetValue(value.ToString() ?? "");
                     break;
             }
+        }
+
+        public static string CreateHash(object value)
+        {
+            string json = JsonService.CreateJson(value);
+            return CreateHashFromString(json);
+        }
+
+        public static string CreateHashFromString(string value)
+        {
+            using SHA256 sha = SHA256.Create();
+
+            byte[] bytes = Encoding.UTF8.GetBytes(value);
+            byte[] hash = sha.ComputeHash(bytes);
+
+            return Convert.ToHexString(hash).ToLowerInvariant();
         }
     }
 }

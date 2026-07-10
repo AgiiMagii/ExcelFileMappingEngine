@@ -50,9 +50,21 @@ namespace FileMappingEngine.Lib
             _mappingService = mappingService ?? throw new ArgumentNullException(nameof(mappingService));
         }
 
-        public void OpenFile(string path)
+        public async Task OpenFile(string path)
         {
-            CurrentSession = _fileService.OpenFile(path);
+            var session = await _fileService.OpenFile(path);
+
+            if (session == null)
+                throw new InvalidOperationException("Failed to open the file.");
+            if (session.Data == null)
+                throw new InvalidOperationException("Data state is not initialized.");
+
+            CurrentSession = session;   // <-- assign BEFORE the DB lookup, not after
+
+            if (session.Data.FileDefinition?.Hash != null)
+            {
+                await _fileService.FindMatchingFileDefinition(session.Data);
+            }
         }
 
         public void UpdateHeaderRow(int newHeaderRow)
@@ -71,9 +83,11 @@ namespace FileMappingEngine.Lib
             _fileService.CloseCurrentFile(session);
         }
 
-        public async Task<List<MappingSet>> GetAvailableMappings()
+        public async Task<List<MappingSet>> GetAvailableMappings(DataSession session)
         {
-            return await _mappingService.GetMappingSetsAsync();
+            long fileDefId = session.Data?.FileDefinition?.Id ?? throw new InvalidOperationException("File definition ID is not available.");
+
+            return await _mappingService.GetMappingSetsAsync(fileDefId);
         }
 
         public void SaveFile(string filePath)

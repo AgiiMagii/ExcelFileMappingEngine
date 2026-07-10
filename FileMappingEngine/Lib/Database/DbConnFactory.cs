@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Npgsql;
+using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Data;
-using Npgsql;
+using System.Text;
+using System.Windows;
 
 namespace FileMappingEngine.Lib.Database
 {
@@ -17,9 +18,19 @@ namespace FileMappingEngine.Lib.Database
 
         public async Task<IDbConnection> CreateConnectionAsync()
         {
-            var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
-            return connection;
+            try
+            {
+                var connection = new NpgsqlConnection(_connectionString);
+
+                await connection.OpenAsync();
+
+                return connection;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+                throw;
+            }
         }
     }
 }

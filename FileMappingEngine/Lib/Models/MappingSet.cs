@@ -11,7 +11,5 @@ namespace FileMappingEngine.Lib.Models
         public int HeaderRow { get; set; }
 
         public List<ActionStep> Steps { get; set; } = new();
-
-        public FileDefinition? FileDefinition { get; set; }
     }
 }

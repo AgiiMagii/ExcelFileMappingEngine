@@ -42,11 +42,19 @@ namespace FileMappingEngine.Lib.Database.Repositories
             return result.ToList();
         }
 
-        public async Task<MappingEntity?> GetMappingByIdAsync(long id)
+        public async Task<List<MappingEntity>> GetMappingSetsByFileIdAsync(long fileId)
         {
             using var connection = await _dbConnFactory.CreateConnectionAsync();
-            var sql = "SELECT * FROM mappings WHERE id = @Id";
-            return await connection.QuerySingleOrDefaultAsync<MappingEntity>(sql, new { Id = id });
+            var sql = "SELECT name, id  FROM mappings WHERE file_id = @FileId";
+            var result = await connection.QueryAsync<MappingEntity>(sql, new { FileId = fileId });
+            return result.ToList();
+        }
+
+        public async Task<MappingEntity?> GetMappingByIdAsync(long mappingId)
+        {
+            using var connection = await _dbConnFactory.CreateConnectionAsync();
+            var sql = "SELECT * FROM mappings WHERE id = @MappingId";
+            return await connection.QueryFirstOrDefaultAsync<MappingEntity>(sql, new { MappingId = mappingId });
         }
     }
 }

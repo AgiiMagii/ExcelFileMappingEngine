@@ -10,6 +10,7 @@ namespace FileMappingEngine.Lib.Database.Entities
         public string? Name { get; set; }
         public string? FingerPrint { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? FingerprintHash { get; set; }
 
     }
 }

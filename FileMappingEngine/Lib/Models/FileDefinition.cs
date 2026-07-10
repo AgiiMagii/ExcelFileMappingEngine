@@ -10,6 +10,9 @@ namespace FileMappingEngine.Lib.Models
         public string? Name { get; set; }
 
         public List<ColumnData>? Columns { get; set; } = new();
+        public string? Hash { get; set; }
+
+
         public List<MappingSet>? MappingSets { get; set; } = new();
     }
 }

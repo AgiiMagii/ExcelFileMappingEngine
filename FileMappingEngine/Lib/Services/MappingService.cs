@@ -81,7 +81,7 @@ namespace FileMappingEngine.Lib.Services
             {
                 Name = fileDefName,
                 FingerPrint = json,
-                CreatedAt = DateTime.UtcNow
+                FingerprintHash = session.Data.FileDefinition.Hash,
             };
 
             return await fileRepository.AddFileDefinitionAsync(fileEntity);
@@ -213,9 +213,9 @@ namespace FileMappingEngine.Lib.Services
             await mappingRepository.AddMappingAsync(mapping);
         }
 
-        public async Task<List<MappingSet>> GetMappingSetsAsync()
+        public async Task<List<MappingSet>> GetMappingSetsAsync(long fileId)
         {
-            var entities = await mappingRepository.GetAllMappingNamesAsync();
+            var entities = await mappingRepository.GetMappingSetsByFileIdAsync(fileId);
 
             return entities.Select(e => new MappingSet
             {

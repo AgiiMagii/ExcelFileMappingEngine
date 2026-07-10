@@ -35,9 +35,9 @@ namespace FileMappingEngine
             this.appManager = appManager;
         }
 
-        private void LoadFile(string fileName)
+        private async Task LoadFile(string fileName)
         {
-            appManager.OpenFile(fileName);
+            await appManager.OpenFile(fileName);
 
             if (!appManager.HasFile)
                 return;
@@ -49,7 +49,8 @@ namespace FileMappingEngine
                 LoadComboBox();
             }
 
-            GenerateMappingSetButtons();
+            await GenerateMappingSetButtons();
+
             ReloadGrid();
         }
 
@@ -63,10 +64,10 @@ namespace FileMappingEngine
             }
         }
 
-        private async void GenerateMappingSetButtons()
+        private async Task GenerateMappingSetButtons()
         {
             mappingPanel.Children.Clear();
-            List<MappingSet> mappings = (await appManager.GetAvailableMappings()).ToList();
+            List<MappingSet> mappings = (await appManager.GetAvailableMappings(appManager.Session!)).ToList();
             foreach (var mapping in mappings)
             {
                 var button = new Button
