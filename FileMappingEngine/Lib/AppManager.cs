@@ -67,7 +67,7 @@ namespace FileMappingEngine.Lib
             }
         }
 
-        public void UpdateHeaderRow(int newHeaderRow)
+        public async Task UpdateHeaderRow(int newHeaderRow)
         {
             if (CurrentSession == null)
                 throw new InvalidOperationException("No file loaded.");
@@ -76,6 +76,11 @@ namespace FileMappingEngine.Lib
             if (CurrentSession.Data?.RawData?.Data == null)
                 throw new InvalidOperationException("Raw data not loaded.");
             _dataService.UpdateHeaderRow(CurrentSession.Data, newHeaderRow);
+
+            if (CurrentSession.Data.FileDefinition?.Hash != null)
+            {
+                await _fileService.FindMatchingFileDefinition(CurrentSession.Data);
+            }
         }
 
         public void CloseCurrentFile(DataSession session)
@@ -85,9 +90,12 @@ namespace FileMappingEngine.Lib
 
         public async Task<List<MappingSet>> GetAvailableMappings(DataSession session)
         {
-            long fileDefId = session.Data?.FileDefinition?.Id ?? throw new InvalidOperationException("File definition ID is not available.");
+            long? fileDefId = session.Data?.FileDefinition?.Id;
 
-            return await _mappingService.GetMappingSetsAsync(fileDefId);
+            if (fileDefId == null)
+                return new List<MappingSet>();
+
+            return await _mappingService.GetMappingSetsAsync(fileDefId.Value);
         }
 
         public void SaveFile(string filePath)

@@ -35,7 +35,7 @@ namespace FileMappingEngine
             this.appManager = appManager;
         }
 
-        private async Task LoadFile(string fileName)
+        private async Task LoadFileAsync(string fileName)
         {
             await appManager.OpenFile(fileName);
 
@@ -49,6 +49,7 @@ namespace FileMappingEngine
                 LoadComboBox();
             }
 
+            
             await GenerateMappingSetButtons();
 
             ReloadGrid();
@@ -67,7 +68,9 @@ namespace FileMappingEngine
         private async Task GenerateMappingSetButtons()
         {
             mappingPanel.Children.Clear();
-            List<MappingSet> mappings = (await appManager.GetAvailableMappings(appManager.Session!)).ToList();
+
+            var mappings = (await appManager.GetAvailableMappings(appManager.Session!)).ToList();
+
             foreach (var mapping in mappings)
             {
                 var button = new Button
@@ -75,6 +78,7 @@ namespace FileMappingEngine
                     Content = mapping.Name,
                     Tag = mapping.Id
                 };
+
                 button.Click += MappingSetButton_Click;
                 mappingPanel.Children.Add(button);
             }
@@ -105,7 +109,7 @@ namespace FileMappingEngine
             ReloadGrid();
         }
 
-        private void ChooseFileButton_Click(object sender, RoutedEventArgs e)
+        private async void ChooseFileButton_Click(object sender, RoutedEventArgs e)
         {
             if (appManager.HasFile)
             {
@@ -137,21 +141,23 @@ namespace FileMappingEngine
             if (ofd.ShowDialog() == true)
             {
                 _isFirstLoad = true;
-                LoadFile(ofd.FileName);
+                await LoadFileAsync(ofd.FileName);
                 _isFirstLoad = false;
 
                 txtFilePath.Text = appManager?.Session?.File?.FileName;
             }
         }
 
-        private void CbHeaderRow_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void CbHeaderRow_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (CbHeaderRow.SelectedIndex >= 0 && appManager.Session?.File != null && appManager.Session.File.FileName != null)
             {
                 int headerRowIndex = CbHeaderRow.SelectedIndex + 1;
 
-                appManager.UpdateHeaderRow(headerRowIndex);
+                await appManager.UpdateHeaderRow(headerRowIndex);
+                await GenerateMappingSetButtons();
                 ReloadGrid();
+
             }
         }
 

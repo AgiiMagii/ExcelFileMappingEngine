@@ -1,6 +1,7 @@
 ﻿using ClosedXML.Excel;
 using FileMappingEngine.Lib.Database.Entities;
 using FileMappingEngine.Lib.Database.Repositories;
+using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Sessions;
 using System;
@@ -47,11 +48,8 @@ namespace FileMappingEngine.Lib.Services
 
             if (session.Data.FileDefinition?.Id  == null)
             {
-                if (session.Data.FileDefinition?.Id == null)
-                {
-                    session.Data.FileDefinition?.Id =
+                session.Data.FileDefinition?.Id =
                         await CreateFileDefinition(session, fileDefName);
-                }
             }
 
             session.MappingSet.Name = mappingName;
@@ -76,12 +74,13 @@ namespace FileMappingEngine.Lib.Services
                 throw new InvalidOperationException("File definition columns not available.");
 
             string json = JsonService.CreateJson(session.Data.FileDefinition.Columns);
+            string hash = DataHelper.CreateHashFromString(json);
 
             FileEntity fileEntity = new FileEntity
             {
                 Name = fileDefName,
                 FingerPrint = json,
-                FingerprintHash = session.Data.FileDefinition.Hash,
+                FingerprintHash = hash,
             };
 
             return await fileRepository.AddFileDefinitionAsync(fileEntity);
