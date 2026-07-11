@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing.Imaging.Effects;
 using System.Security.Cryptography;
 using System.Text;
+using static FileMappingEngine.Lib.Models.Enums;
 
 namespace FileMappingEngine.Lib.Helpers
 {
@@ -67,6 +68,19 @@ namespace FileMappingEngine.Lib.Helpers
             byte[] hash = sha.ComputeHash(bytes);
 
             return Convert.ToHexString(hash).ToLowerInvariant();
+        }
+
+        public static Type GetSystemType(DataType dataType)
+        {
+            return dataType switch
+            {
+                DataType.Text => typeof(string),
+                DataType.Number => typeof(double),
+                DataType.Date => typeof(DateTime),
+                DataType.Boolean => typeof(bool),
+
+                _ => typeof(object)
+            };
         }
     }
 }

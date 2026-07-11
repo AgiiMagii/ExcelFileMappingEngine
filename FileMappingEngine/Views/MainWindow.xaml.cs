@@ -48,11 +48,29 @@ namespace FileMappingEngine
             {
                 LoadComboBox();
             }
-
             
             await GenerateMappingSetButtons();
 
             ReloadGrid();
+        }
+
+        private async Task GenerateMappingSetButtons()
+        {
+            mappingPanel.Children.Clear();
+
+            List<MappingSet> mappings = (await appManager.GetAvailableMappings(appManager.Session!)).ToList();
+
+            foreach (MappingSet mapping in mappings)
+            {
+                var button = new Button
+                {
+                    Content = mapping.Name,
+                    Tag = mapping.Id
+                };
+
+                button.Click += MappingSetButton_Click;
+                mappingPanel.Children.Add(button);
+            }
         }
 
         private void LoadComboBox()
@@ -64,25 +82,6 @@ namespace FileMappingEngine
             for (int i = 1; i <= columnCount; i++)
             {
                 CbHeaderRow.Items.Add(i);
-            }
-        }
-
-        private async Task GenerateMappingSetButtons()
-        {
-            mappingPanel.Children.Clear();
-
-            var mappings = (await appManager.GetAvailableMappings(appManager.Session!)).ToList();
-
-            foreach (var mapping in mappings)
-            {
-                var button = new Button
-                {
-                    Content = mapping.Name,
-                    Tag = mapping.Id
-                };
-
-                button.Click += MappingSetButton_Click;
-                mappingPanel.Children.Add(button);
             }
         }
 
@@ -503,24 +502,9 @@ namespace FileMappingEngine
             if (string.IsNullOrWhiteSpace(columnName))
                 return;
 
-            Type systemType = GetSystemType(selectedDataType);
-
-            appManager.SetColumnDataType(columnName, systemType);
+            appManager.SetColumnDataType(columnName, selectedDataType);
 
             ChangeDataTypeOverlay.Visibility = Visibility.Collapsed;
-        }
-
-        private static Type GetSystemType(DataType dataType)
-        {
-            return dataType switch
-            {
-                DataType.Text => typeof(string),
-                DataType.Number => typeof(double),
-                DataType.Date => typeof(DateTime),
-                DataType.Boolean => typeof(bool),
-
-                _ => typeof(object)
-            };
         }
 
         private void CancelDataType_Click(object sender, RoutedEventArgs e)

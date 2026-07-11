@@ -18,6 +18,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Windows.Controls;
+using static FileMappingEngine.Lib.Models.Enums;
 
 namespace FileMappingEngine.Lib
 {
@@ -220,12 +221,14 @@ namespace FileMappingEngine.Lib
             _dataService.ApplyFormulaToColumn(CurrentSession, columnName, formula);
         }
 
-        public void SetColumnDataType(string columnName, Type dataType)
+        public void SetColumnDataType(string columnName, DataType dataType)
         {
             if (CurrentSession == null)
                 throw new InvalidOperationException("No file loaded.");
 
-            _dataService.SetColumnDataType(CurrentSession, columnName, dataType);
+            Type systemType = DataHelper.GetSystemType(dataType);
+
+            _dataService.SetColumnDataType(CurrentSession, columnName, systemType);
         }
     }
 }
