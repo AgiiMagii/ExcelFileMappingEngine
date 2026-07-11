@@ -196,6 +196,14 @@ namespace FileMappingEngine.Lib
                 })];
         }
 
+        public int GetColumnCount()
+        {
+            if (CurrentSession == null || CurrentSession.Data?.CurrentData == null)
+                throw new InvalidOperationException("No file loaded or current data not available.");
+
+            return CurrentSession.Data.CurrentData.Columns.Count;
+        }
+
         public void SortData(string columnName, bool ascending)
         {
             if (CurrentSession == null)

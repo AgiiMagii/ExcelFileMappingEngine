@@ -43,8 +43,10 @@ namespace FileMappingEngine.Lib.Services
             dataState.HeaderRowIndex = newHeaderRow;
             ExcelHelper.BuildCurrentData(dataState);
 
-            dataState.FileDefinition.Hash = DataHelper.CreateHash(dataState.FileDefinition.Columns);
+            if (dataState.FileDefinition == null || dataState.FileDefinition.Columns == null)
+                throw new InvalidOperationException("File definition is not loaded.");
 
+            dataState.FileDefinition.Hash = DataHelper.CreateHash(dataState.FileDefinition.Columns);
         }
 
         public void RemoveColumnCore(DataState dataState, string columnName)

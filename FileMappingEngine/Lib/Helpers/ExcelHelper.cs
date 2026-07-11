@@ -60,51 +60,6 @@ namespace FileMappingEngine.Lib.Helpers
             };
         }
 
-        //public static DataTable BuildDataTable(DataTable rawData, int headerRowIndex = 1)
-        //{
-        //    DataTable dataTable = new();
-        //    FileDefinition fileDefinition = new FileDefinition();
-
-        //    int headerIndex = headerRowIndex - 1;
-
-        //    if (headerIndex >= rawData.Rows.Count)
-        //        throw new ArgumentException("Invalid header row.");
-
-        //    DataRow headerRow = rawData.Rows[headerIndex];
-
-        //    HashSet<string> usedNames = [];
-
-        //    for (int c = 0; c < rawData.Columns.Count; c++)
-        //    {
-        //        string rawName = headerRow[c]?.ToString()?.Trim() ?? "";
-
-        //        string colName =
-        //            GetSafeColumnName(
-        //                rawName,
-        //                c + 1,
-        //                usedNames);
-
-        //        dataTable.Columns.Add(colName, rawData.Columns[c].DataType);
-        //        fileDefinition?.Columns?.Add(new ColumnData
-        //        {
-        //            Name = colName
-        //        });
-        //    }
-            
-
-        //    for (int r = headerIndex + 1; r < rawData.Rows.Count; r++)
-        //    {
-        //        DataRow newRow = dataTable.NewRow();
-
-        //        for (int c = 0; c < rawData.Columns.Count; c++)
-        //        {
-        //            newRow[c] = rawData.Rows[r][c];
-        //        }
-
-        //        dataTable.Rows.Add(newRow);
-        //    }
-        //    return dataTable;
-        //}
         public static void BuildCurrentData(DataState dataState)
         {
             DataTable dataTable = new();

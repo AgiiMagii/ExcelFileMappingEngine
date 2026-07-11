@@ -57,9 +57,11 @@ namespace FileMappingEngine
 
         private void LoadComboBox()
         {
-            List<string> columns = appManager.GetDataColumns()?.Select(c => c.Name).ToList() ?? [];
+            int columnCount = appManager.GetColumnCount();
+
             CbHeaderRow.Items.Clear();
-            for (int i = 1; i <= columns.Count; i++)
+
+            for (int i = 1; i <= columnCount; i++)
             {
                 CbHeaderRow.Items.Add(i);
             }
