@@ -5,6 +5,7 @@ using FileMappingEngine.Lib.Database.Repositories;
 using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Sessions;
+using FileMappingEngine.Resources;
 using FileMappingEngine.Views;
 using Microsoft.Win32;
 using System.ComponentModel;
@@ -37,21 +38,28 @@ namespace FileMappingEngine
 
         private async Task LoadFileAsync(string fileName)
         {
-            await appManager.OpenFile(fileName);
-
-            if (!appManager.HasFile)
-                return;
-
-            headerRowPanel.IsEnabled = true;
-
-            if (_isFirstLoad)
+            try
             {
-                LoadComboBox();
-            }
-            
-            await GenerateMappingSetButtons();
+                await appManager.OpenFile(fileName);
 
-            ReloadGrid();
+                if (!appManager.HasFile)
+                    return;
+
+                headerRowPanel.IsEnabled = true;
+
+                if (_isFirstLoad)
+                {
+                    LoadComboBox();
+                }
+
+                await GenerateMappingSetButtons();
+
+                ReloadGrid();
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(string.Format(UiMessages.Error_load, UiTerms.File), UiTerms.ErrorCapitalize, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private async Task GenerateMappingSetButtons()
@@ -84,6 +92,18 @@ namespace FileMappingEngine
                 CbHeaderRow.Items.Add(i);
             }
         }
+        private async void CbHeaderRow_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (CbHeaderRow.SelectedIndex >= 0 && appManager.Session?.File != null && appManager.Session.File.FileName != null)
+            {
+                int headerRowIndex = CbHeaderRow.SelectedIndex + 1;
+
+                await appManager.UpdateHeaderRow(headerRowIndex);
+                await GenerateMappingSetButtons();
+                ReloadGrid();
+
+            }
+        }
 
         private void ReloadGrid()
         {
@@ -98,16 +118,22 @@ namespace FileMappingEngine
                 RestoreSort();
             }
         }
-
-        private async void MappingSetButton_Click(object sender, RoutedEventArgs e)
+        private void RestoreSort()
         {
-            if (sender is not Button button)
+            if (appManager.Session?.Data?.SortedColumn == null)
                 return;
 
-            long id = Convert.ToInt64(button.Tag);
-            //appManager.ApplyMappingSet(filePath);
-            await appManager.ApplyMappingSetAsync(id);
-            ReloadGrid();
+            foreach (var column in dataGrid.Columns)
+            {
+                if (column.Header?.ToString() ==
+                    appManager.Session.Data.SortedColumn)
+                {
+                    column.SortDirection =
+                        appManager.Session.Data.SortAscending == true
+                        ? ListSortDirection.Ascending
+                        : ListSortDirection.Descending;
+                }
+            }
         }
 
         private async void ChooseFileButton_Click(object sender, RoutedEventArgs e)
@@ -148,20 +174,16 @@ namespace FileMappingEngine
                 txtFilePath.Text = appManager?.Session?.File?.FileName;
             }
         }
-
-        private async void CbHeaderRow_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void MappingSetButton_Click(object sender, RoutedEventArgs e)
         {
-            if (CbHeaderRow.SelectedIndex >= 0 && appManager.Session?.File != null && appManager.Session.File.FileName != null)
-            {
-                int headerRowIndex = CbHeaderRow.SelectedIndex + 1;
+            if (sender is not Button button)
+                return;
 
-                await appManager.UpdateHeaderRow(headerRowIndex);
-                await GenerateMappingSetButtons();
-                ReloadGrid();
+            long id = Convert.ToInt64(button.Tag);
 
-            }
+            await appManager.ApplyMappingSetAsync(id);
+            ReloadGrid();
         }
-
         private void SaveFileButton_Click(object sender, RoutedEventArgs e)
         {
             if (appManager.Session?.File == null)
@@ -187,7 +209,6 @@ namespace FileMappingEngine
                 }
             }
         }
-
         private async void SaveMappingSet_Click(object sender, RoutedEventArgs e)
         {
             txtFileDefinitionName.Text = appManager.Session?.Data?.FileDefinition?.Name ?? appManager.Session?.File?.FileName ?? "New File Type";
@@ -197,50 +218,39 @@ namespace FileMappingEngine
 
             SaveMappingOverlay.Visibility = Visibility.Visible;
         }
-
-        private void OnDataGridSorting_Sorting(object sender, DataGridSortingEventArgs e)
+        public async Task SaveMappingSet()
         {
-            if (!_allowSorting)
+            string fileDefName = txtFileDefinitionName.Text.Trim();
+            string mappingName = txtMappingName.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(fileDefName) || string.IsNullOrWhiteSpace(mappingName))
             {
-                MessageBoxResult result = MessageBox.Show(
-                    "Vai vēlaties mainīt kārtošanas secību?",
-                    "Apstiprinājums",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-
-                if (result != MessageBoxResult.Yes)
-                {
-                    e.Handled = true;
-                    return;
-                }
-            }
-
-            _allowSorting = false;
-
-            string columnName = e.Column.Header.ToString() ?? "";
-
-            bool ascending =
-                e.Column.SortDirection != ListSortDirection.Ascending;
-
-            appManager.SortData(columnName, ascending);
-        }
-
-        private void RestoreSort()
-        {
-            if (appManager.Session?.Data?.SortedColumn == null)
+                MessageBox.Show("File definition name and mapping name cannot be empty.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
-
-            foreach (var column in dataGrid.Columns)
-            {
-                if (column.Header?.ToString() ==
-                    appManager.Session.Data.SortedColumn)
-                {
-                    column.SortDirection =
-                        appManager.Session.Data.SortAscending == true
-                        ? ListSortDirection.Ascending
-                        : ListSortDirection.Descending;
-                }
             }
+
+            await appManager.SaveMappingSet(fileDefName, mappingName);
+        }
+        public async void SaveMapping_Click(object sender, RoutedEventArgs e)
+        {
+            await SaveMappingSet();
+            SaveMappingOverlay.Visibility = Visibility.Collapsed;
+        }
+        private void Undo_Click(object sender, RoutedEventArgs e)
+        {
+            appManager.UndoLastAction();
+            ReloadGrid();
+        }
+        private void ResetTable_Click(object sender, RoutedEventArgs e)
+        {
+            if (appManager.Session?.File == null)
+                return;
+            appManager.ResetTable();
+            ReloadGrid();
+        }
+        private void CancelSaveMapping_Click(object sender, RoutedEventArgs e)
+        {
+            SaveMappingOverlay.Visibility = Visibility.Collapsed;
         }
 
         private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
@@ -338,9 +348,9 @@ namespace FileMappingEngine
             setFormat.Click += SetDataTypeMenuItem_Click;
             menu.Items.Add(setFormat);
 
-            MenuItem concat = new() { Header = "Merge columns", Tag = column };
-            concat.Click += ConcatColumnsMenuItem_Click;
-            menu.Items.Add(concat);
+            MenuItem mergeColumns = new() { Header = "Merge columns", Tag = column };
+            mergeColumns.Click += MergeColumnsMenuItem_Click;
+            menu.Items.Add(mergeColumns);
 
             MenuItem writeFormula = new() { Header = "Formula", Tag = column };
             writeFormula.Click += WriteFormulaMenuItem_Click;
@@ -350,7 +360,6 @@ namespace FileMappingEngine
 
             return menu;
         }
-
         private ContextMenu CreateColumnHeaderContextMenuMulti(HashSet<string> columns)
         {
             ContextMenu menu = new();
@@ -378,7 +387,6 @@ namespace FileMappingEngine
             appManager.RemoveColumn(columnName);
             ReloadGrid();
         }
-
         private void RemoveColumnMenuItems_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuItem menuItem || menuItem.Tag is not HashSet<string> columns)
@@ -394,7 +402,6 @@ namespace FileMappingEngine
             ReloadGrid();
             _selectedColumns.Clear();
         }
-
         private void AddColumnMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
@@ -410,7 +417,7 @@ namespace FileMappingEngine
             appManager.AddColumn(direction, anchorId, null);
             ReloadGrid();
         }
-        
+
         private void RenameColumnMenuItem_Click(object sender, RoutedEventArgs e)
         {
 
@@ -429,7 +436,6 @@ namespace FileMappingEngine
 
             RenameColumnOverlay.Visibility = Visibility.Visible;
         }
-
         private void SaveRenameColumn_Click(object sender, RoutedEventArgs e)
         {
             string newName = txtNewColumnName.Text.Trim();
@@ -457,24 +463,6 @@ namespace FileMappingEngine
             RenameColumnOverlay.Visibility = Visibility.Collapsed;
         }
 
-        private void CancelRenameColumn_Click(object sender, RoutedEventArgs e)
-        {
-            RenameColumnOverlay.Visibility = Visibility.Collapsed;
-        }
-
-        private void CancelMergeColumns_Click(object sender, RoutedEventArgs e)
-        {
-            MergeColumnsOverlay.Visibility = Visibility.Collapsed;
-        }
-
-        private void ResetTable_Click(object sender, RoutedEventArgs e)
-        {
-            if (appManager.Session?.File == null)
-                return;
-            appManager.ResetTable();
-            ReloadGrid();
-        }
-
         private void SetDataTypeMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
@@ -488,7 +476,11 @@ namespace FileMappingEngine
             txtDataTypeColumn.Text = columnName;
             ChangeDataTypeOverlay.Visibility = Visibility.Visible;
         }
-
+        private void LoadComboForDataTypeOverlay()
+        {
+            cmbDataType.ItemsSource = Enum.GetValues<DataType>();
+            cmbDataType.SelectedIndex = -1;
+        }
         private void SaveDataType_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not Button)
@@ -507,12 +499,7 @@ namespace FileMappingEngine
             ChangeDataTypeOverlay.Visibility = Visibility.Collapsed;
         }
 
-        private void CancelDataType_Click(object sender, RoutedEventArgs e)
-        {
-            ChangeDataTypeOverlay.Visibility = Visibility.Collapsed;
-        }
-
-        private void ConcatColumnsMenuItem_Click(object sender, RoutedEventArgs e)
+        private void MergeColumnsMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
                 return;
@@ -524,7 +511,6 @@ namespace FileMappingEngine
 
             MergeColumnsOverlay.Visibility = Visibility.Visible;
         }
-
         private void LoadCombosForMergeOverlay()
         {
             List<ColumnReference> columns = appManager.GetDataColumns() ?? [];
@@ -535,13 +521,6 @@ namespace FileMappingEngine
             cmbMergeColumn1.DisplayMemberPath = "Name";
             cmbMergeColumn2.DisplayMemberPath = "Name";
         }
-
-        private void LoadComboForDataTypeOverlay()
-        {
-            cmbDataType.ItemsSource = Enum.GetValues<DataType>();
-            cmbDataType.SelectedIndex = -1;
-        }
-
         private void SaveMergeColumns_Click(object sender, RoutedEventArgs e)
         {
             if (cmbMergeColumn1.SelectedItem is not ColumnReference first || cmbMergeColumn2.SelectedItem is not ColumnReference second)
@@ -584,35 +563,44 @@ namespace FileMappingEngine
             }
         }
 
-        public async Task SaveMappingSet()
+        private void OnDataGridSorting_Sorting(object sender, DataGridSortingEventArgs e)
         {
-            string fileDefName = txtFileDefinitionName.Text.Trim();
-            string mappingName = txtMappingName.Text.Trim();
-
-            if (string.IsNullOrWhiteSpace(fileDefName) || string.IsNullOrWhiteSpace(mappingName))
+            if (!_allowSorting)
             {
-                MessageBox.Show("File definition name and mapping name cannot be empty.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                MessageBoxResult result = MessageBox.Show(
+                    "Vai vēlaties mainīt kārtošanas secību?",
+                    "Apstiprinājums",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result != MessageBoxResult.Yes)
+                {
+                    e.Handled = true;
+                    return;
+                }
             }
 
-            await appManager.SaveMappingSet(fileDefName, mappingName);
+            _allowSorting = false;
+
+            string columnName = e.Column.Header.ToString() ?? "";
+
+            bool ascending =
+                e.Column.SortDirection != ListSortDirection.Ascending;
+
+            appManager.SortData(columnName, ascending);
         }
 
-        public async void SaveMapping_Click(object sender, RoutedEventArgs e)
+        private void CancelRenameColumn_Click(object sender, RoutedEventArgs e)
         {
-            await SaveMappingSet();
-            SaveMappingOverlay.Visibility = Visibility.Collapsed;
+            RenameColumnOverlay.Visibility = Visibility.Collapsed;
         }
-
-        private void Undo_Click(object sender, RoutedEventArgs e)
+        private void CancelMergeColumns_Click(object sender, RoutedEventArgs e)
         {
-            appManager.UndoLastAction();
-            ReloadGrid();
+            MergeColumnsOverlay.Visibility = Visibility.Collapsed;
         }
-
-        private void CancelSaveMapping_Click(object sender, RoutedEventArgs e)
+        private void CancelDataType_Click(object sender, RoutedEventArgs e)
         {
-            SaveMappingOverlay.Visibility = Visibility.Collapsed;
+            ChangeDataTypeOverlay.Visibility = Visibility.Collapsed;
         }
     }
 }
