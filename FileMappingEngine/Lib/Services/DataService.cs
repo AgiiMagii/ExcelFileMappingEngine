@@ -9,6 +9,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Windows;
+using static FileMappingEngine.Lib.Models.Enums;
 
 namespace FileMappingEngine.Lib.Services
 {
@@ -74,7 +75,7 @@ namespace FileMappingEngine.Lib.Services
             });
         }
 
-        public string AddColumnCore(DataState dataState, string direction, string anchorId, string? newName, Type? dataType = null)
+        public string AddColumnCore(DataState dataState, ColumnDirection direction, string anchorId, string? newName, Type? dataType = null)
         {
             if (dataState == null || dataState.CurrentData == null)
                 throw new InvalidOperationException("No data loaded.");
@@ -88,7 +89,7 @@ namespace FileMappingEngine.Lib.Services
 
             return newColumnName;
         }
-        public void AddColumn(DataSession session, string direction, string anchorId, string? newName)
+        public void AddColumn(DataSession session, ColumnDirection direction, string anchorId, string? newName)
         {
             if (session.Data == null)
                 throw new InvalidOperationException("No data loaded.");
@@ -162,7 +163,7 @@ namespace FileMappingEngine.Lib.Services
 
             if (targetColumn != first.Name)
             {
-                AddColumnCore(session.Data, "right", first.Name, targetColumn);
+                AddColumnCore(session.Data, ColumnDirection.Right, first.Name, targetColumn);
             }
 
 
@@ -344,7 +345,7 @@ namespace FileMappingEngine.Lib.Services
             return name;
         }
 
-        private int CalculateColumnIndex(DataState dataState, string anchorId, string direction)
+        private int CalculateColumnIndex(DataState dataState, string anchorId, ColumnDirection direction)
         {
             if (dataState.CurrentData == null)
                 throw new InvalidOperationException("No current data loaded.");
@@ -352,10 +353,10 @@ namespace FileMappingEngine.Lib.Services
             int anchorIndex = dataState.CurrentData.Columns.IndexOf(anchorId);
             if (anchorIndex == -1)
                 throw new ArgumentException($"Anchor column '{anchorId}' does not exist.");
-            return direction.ToLower() switch
+            return direction switch
             {
-                "left" => anchorIndex,
-                "right" => anchorIndex + 1,
+                ColumnDirection.Left => anchorIndex,
+                ColumnDirection.Right => anchorIndex + 1,
                 _ => throw new ArgumentException("Direction must be 'left' or 'right'.")
             };
         }

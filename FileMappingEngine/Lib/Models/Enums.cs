@@ -64,5 +64,11 @@ namespace FileMappingEngine.Lib.Models
             Date,
             Boolean
         }
+
+        public enum ColumnDirection
+        {
+            Left,
+            Right
+        }
     }
 }

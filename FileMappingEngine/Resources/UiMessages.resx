@@ -117,7 +117,55 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Error_load" xml:space="preserve">
-    <value>Unable to load {0}!</value>
+  <data name="ColumnAddAfter" xml:space="preserve">
+    <value>Add column after</value>
+  </data>
+  <data name="ColumnAddBefore" xml:space="preserve">
+    <value>Add column before</value>
+  </data>
+  <data name="ColumnFormula" xml:space="preserve">
+    <value>Define formula</value>
+  </data>
+  <data name="ColumnMerge" xml:space="preserve">
+    <value>Merge columns</value>
+  </data>
+  <data name="ColumnRemove" xml:space="preserve">
+    <value>Remove column</value>
+  </data>
+  <data name="ColumnRemovePlural" xml:space="preserve">
+    <value>Remove columns</value>
+  </data>
+  <data name="ColumnRename" xml:space="preserve">
+    <value>Rename column</value>
+  </data>
+  <data name="ColumnSetDt" xml:space="preserve">
+    <value>Set data type</value>
+  </data>
+  <data name="Fail_add" xml:space="preserve">
+    <value>Failed adding {0};</value>
+  </data>
+  <data name="Fail_apply" xml:space="preserve">
+    <value>Failed to apply {0}!</value>
+  </data>
+  <data name="Fail_change" xml:space="preserve">
+    <value>Failed to change {0}!</value>
+  </data>
+  <data name="Fail_load" xml:space="preserve">
+    <value>Failed to load {0}!</value>
+  </data>
+  <data name="Fail_remove" xml:space="preserve">
+    <value>Failed to remove {0}!</value>
+  </data>
+  <data name="Fail_save" xml:space="preserve">
+    <value>Failed to save {0}!</value>
+  </data>
+  <data name="Success_save" xml:space="preserve">
+    <value>{0} saved successfully.</value>
+  </data>
+  <data name="Warning_fillFielfs" xml:space="preserve">
+    <value>Please fill in all fields!</value>
+  </data>
+  <data name="Warning_notLoaded" xml:space="preserve">
+    <value>No {0} loaded!</value>
   </data>
 </root>

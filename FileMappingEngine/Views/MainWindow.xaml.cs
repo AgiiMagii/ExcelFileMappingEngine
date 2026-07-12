@@ -24,6 +24,12 @@ namespace FileMappingEngine
     /// </summary>
     public partial class MainWindow : Window
     {
+        // TODO:
+        // - Review and refactor the undo functionality
+        // - Review reset functionality and consider resetting the header row to default
+        // - Consider refactoring RemoveColumns and add functionality in AppManager to remove multiple columns at once not one by one
+
+
         private readonly AppManager appManager;
         private readonly UiHelper helper = new();
         private readonly HashSet<string> _selectedColumns = [];
@@ -58,7 +64,7 @@ namespace FileMappingEngine
             }
             catch (Exception)
             {
-                MessageBox.Show(string.Format(UiMessages.Error_load, UiTerms.File), UiTerms.ErrorCapitalize, MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(string.Format(UiMessages.Fail_load, UiTerms.File), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -94,22 +100,30 @@ namespace FileMappingEngine
         }
         private async void CbHeaderRow_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (CbHeaderRow.SelectedIndex >= 0 && appManager.Session?.File != null && appManager.Session.File.FileName != null)
+            if (CbHeaderRow.SelectedIndex < 0 || appManager.Session?.File == null || appManager.Session.File.FileName == null)
+                return;
+
+            try
             {
                 int headerRowIndex = CbHeaderRow.SelectedIndex + 1;
 
                 await appManager.UpdateHeaderRow(headerRowIndex);
                 await GenerateMappingSetButtons();
-                ReloadGrid();
 
+                ReloadGrid();
+            }
+            catch (Exception) 
+            { 
+                MessageBox.Show(string.Format(UiMessages.Fail_change, UiTerms.HeaderRow), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void ReloadGrid()
         {
-            var data = appManager.CurrentData ?? throw new InvalidOperationException("No data available.");
+            if (appManager.CurrentData == null)
+                return;
 
-            helper.ReloadDataGrid(dataGrid, data);
+            helper.ReloadDataGrid(dataGrid, appManager.CurrentData);
 
             helper.UpdateSelectedColumnHeaders(dataGrid, _selectedColumns);
 
@@ -140,24 +154,16 @@ namespace FileMappingEngine
         {
             if (appManager.HasFile)
             {
-                DataSession session = appManager.Session!;
-
-                if (session.Data == null || session.Data.CurrentData == null)
-                    throw new Exception("No session or data loaded.");
-
-                if (session.Data.CurrentData.Rows.Count > 0)
-                {
-                    MessageBoxResult result = MessageBox.Show(
+                MessageBoxResult result = MessageBox.Show(
                         "Vai vēlaties ielādēt citu failu? Pašreizējā tabula tiks izdzēsta.",
                         "Apstiprinājums",
                         MessageBoxButton.YesNo,
                         MessageBoxImage.Warning);
 
-                    if (result == MessageBoxResult.No)
-                        return;
+                if (result == MessageBoxResult.No)
+                    return;
 
-                    appManager.CloseCurrentFile(session);
-                }
+                appManager.CloseCurrentFile();
             }
 
             OpenFileDialog ofd = new()
@@ -179,42 +185,50 @@ namespace FileMappingEngine
             if (sender is not Button button)
                 return;
 
-            long id = Convert.ToInt64(button.Tag);
+            try
+            {
+                long id = Convert.ToInt64(button.Tag);
 
-            await appManager.ApplyMappingSetAsync(id);
-            ReloadGrid();
+                await appManager.ApplyMappingSetAsync(id);
+                ReloadGrid();
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(string.Format(UiMessages.Fail_apply, UiTerms.Mapping), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
         private void SaveFileButton_Click(object sender, RoutedEventArgs e)
         {
-            if (appManager.Session?.File == null)
+            if (!appManager.HasFile)
+            {
+                MessageBox.Show(string.Format(UiMessages.Warning_notLoaded, UiTerms.File), UiTerms.Warning, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
+            }
 
-            SaveFileDialog sfd = new()
+            try
             {
-                Filter = "Excel Files|*.xlsx;*.xls",
-                FileName = appManager.Session.File.FileName
-            };
+                SaveFileDialog sfd = new()
+                {
+                    Filter = "Excel Files|*.xlsx;*.xls",
+                    FileName = appManager.CurrentFileName
+                };
 
-            if (sfd.ShowDialog() == true)
-            {
-                if (!string.IsNullOrEmpty(sfd.FileName))
+                if (sfd.ShowDialog() == true &&
+                    !string.IsNullOrEmpty(sfd.FileName))
                 {
                     appManager.SaveFile(sfd.FileName);
 
-                    MessageBox.Show(
-                        "Fails saglabāts!",
-                        "Info",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
+                    MessageBox.Show(string.Format(UiMessages.Success_save, UiTerms.FileCapitalize), UiTerms.Info, MessageBoxButton.OK, MessageBoxImage.Information);
                 }
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(string.Format(UiMessages.Fail_save, UiTerms.File), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         private async void SaveMappingSet_Click(object sender, RoutedEventArgs e)
         {
-            txtFileDefinitionName.Text = appManager.Session?.Data?.FileDefinition?.Name ?? appManager.Session?.File?.FileName ?? "New File Type";
-
-            txtMappingName.Text =
-                appManager.Session?.MappingSet?.Name ?? "";
+            txtFileDefinitionName.Text = appManager.GetFileDefinitionName();
 
             SaveMappingOverlay.Visibility = Visibility.Visible;
         }
@@ -225,7 +239,7 @@ namespace FileMappingEngine
 
             if (string.IsNullOrWhiteSpace(fileDefName) || string.IsNullOrWhiteSpace(mappingName))
             {
-                MessageBox.Show("File definition name and mapping name cannot be empty.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(string.Format(UiMessages.Warning_fillFielfs), UiTerms.Warning, MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -233,8 +247,15 @@ namespace FileMappingEngine
         }
         public async void SaveMapping_Click(object sender, RoutedEventArgs e)
         {
-            await SaveMappingSet();
-            SaveMappingOverlay.Visibility = Visibility.Collapsed;
+            try
+            {
+                await SaveMappingSet();
+                SaveMappingOverlay.Visibility = Visibility.Collapsed;
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(string.Format(UiMessages.Fail_save, UiTerms.Mapping), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
         private void Undo_Click(object sender, RoutedEventArgs e)
         {
@@ -320,17 +341,17 @@ namespace FileMappingEngine
             ContextMenu menu = new();
 
             // Remove Column
-            MenuItem removeItem = new() { Header = "Remove Column", Tag = column };
+            MenuItem removeItem = new() { Header = UiMessages.ColumnRemove, Tag = column };
             removeItem.Click += RemoveColumnMenuItem_Click;
             menu.Items.Add(removeItem);
 
             // Add Column right
-            MenuItem addItemRight = new() { Header = "Add Column / Right", Tag = column };
+            MenuItem addItemRight = new() { Header = UiMessages.ColumnAddAfter, Tag = column };
             addItemRight.Click += AddColumnMenuItem_Click;
             menu.Items.Add(addItemRight);
 
             // Add Column left
-            MenuItem addItemLeft = new() { Header = "Add Column / Left", Tag = column };
+            MenuItem addItemLeft = new() { Header = UiMessages.ColumnAddBefore, Tag = column };
             addItemLeft.Click += AddColumnMenuItem_Click;
             menu.Items.Add(addItemLeft);
 
@@ -339,20 +360,20 @@ namespace FileMappingEngine
             //menu.Items.Add(hideItem);
 
             // Rename Column
-            MenuItem renameCol = new() { Header = "Rename Column", Tag = column };
+            MenuItem renameCol = new() { Header = UiMessages.ColumnRename, Tag = column };
             renameCol.Click += RenameColumnMenuItem_Click;
             menu.Items.Add(renameCol);
 
             // Set Data Type
-            MenuItem setFormat = new() { Header = "Set Data Type", Tag = column };
+            MenuItem setFormat = new() { Header = UiMessages.ColumnSetDt, Tag = column };
             setFormat.Click += SetDataTypeMenuItem_Click;
             menu.Items.Add(setFormat);
 
-            MenuItem mergeColumns = new() { Header = "Merge columns", Tag = column };
+            MenuItem mergeColumns = new() { Header = UiMessages.ColumnMerge, Tag = column };
             mergeColumns.Click += MergeColumnsMenuItem_Click;
             menu.Items.Add(mergeColumns);
 
-            MenuItem writeFormula = new() { Header = "Formula", Tag = column };
+            MenuItem writeFormula = new() { Header = UiMessages.ColumnFormula, Tag = column };
             writeFormula.Click += WriteFormulaMenuItem_Click;
             menu.Items.Add(writeFormula);
 
@@ -365,7 +386,7 @@ namespace FileMappingEngine
             ContextMenu menu = new();
 
             // Remove Column
-            MenuItem removeItem = new () { Header = "Remove Column", Tag = columns };
+            MenuItem removeItem = new () { Header = UiMessages.ColumnRemovePlural, Tag = columns };
             removeItem.Click += RemoveColumnMenuItems_Click;
             menu.Items.Add(removeItem);
 
@@ -384,23 +405,45 @@ namespace FileMappingEngine
             if (string.IsNullOrEmpty(columnName))
                 return;
 
-            appManager.RemoveColumn(columnName);
-            ReloadGrid();
+            try
+            {
+                appManager.RemoveColumn(columnName);
+                ReloadGrid();
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(
+                    string.Format(UiMessages.Fail_remove, UiTerms.Column),
+                    UiTerms.Error,
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
         private void RemoveColumnMenuItems_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuItem menuItem || menuItem.Tag is not HashSet<string> columns)
                 return;
 
-            foreach (var columnName in columns)
+            try
             {
-                if (string.IsNullOrEmpty(columnName))
-                    continue;
+                foreach (var columnName in columns)
+                {
+                    if (string.IsNullOrEmpty(columnName))
+                        continue;
 
-                appManager.RemoveColumn(columnName);
+                    appManager.RemoveColumn(columnName);
+                }
+                ReloadGrid();
+                _selectedColumns.Clear();
             }
-            ReloadGrid();
-            _selectedColumns.Clear();
+            catch (Exception)
+            {
+                MessageBox.Show(
+                    string.Format(UiMessages.Fail_remove, UiTerms.ColumnPlural),
+                    UiTerms.Error,
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
         private void AddColumnMenuItem_Click(object sender, RoutedEventArgs e)
         {
@@ -409,15 +452,29 @@ namespace FileMappingEngine
             
             string? anchorId = column.Header?.ToString();
             
-            string direction = (string)menuItem.Header == "Add Column / Left"
-                ? "Left"
-                : "Right";
+            ColumnDirection direction = (string)menuItem.Header == UiMessages.ColumnAddBefore
+                ? ColumnDirection.Left
+                : ColumnDirection.Right;
+
             if (string.IsNullOrEmpty(anchorId))
                 return;
-            appManager.AddColumn(direction, anchorId, null);
-            ReloadGrid();
+            try
+            {
+                appManager.AddColumn(direction, anchorId, null);
+                ReloadGrid();
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(
+                    string.Format(UiMessages.Fail_add, UiTerms.Column),
+                    UiTerms.Error,
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
 
+
+        // Continue from here with code cleanup and optimization
         private void RenameColumnMenuItem_Click(object sender, RoutedEventArgs e)
         {
 

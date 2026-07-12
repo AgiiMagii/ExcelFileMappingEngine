@@ -84,9 +84,13 @@ namespace FileMappingEngine.Lib
             }
         }
 
-        public void CloseCurrentFile(DataSession session)
+        public void CloseCurrentFile()
         {
-            _fileService.CloseCurrentFile(session);
+            if (CurrentSession == null)
+                throw new InvalidOperationException("No file loaded.");
+
+            _fileService.CloseCurrentFile(CurrentSession);
+            CurrentSession = null;
         }
 
         public async Task<List<MappingSet>> GetAvailableMappings(DataSession session)
@@ -97,6 +101,13 @@ namespace FileMappingEngine.Lib
                 return new List<MappingSet>();
 
             return await _mappingService.GetMappingSetsAsync(fileDefId.Value);
+        }
+
+        public string? GetFileDefinitionName()
+        {
+            return Session?.Data?.FileDefinition?.Name
+                ?? Session?.File?.FileName
+                ?? "New File Type";
         }
 
         public void SaveFile(string filePath)
@@ -115,7 +126,7 @@ namespace FileMappingEngine.Lib
             _dataService.RemoveColumn(CurrentSession, columnName);
         }
 
-        public void AddColumn(string direction, string anchorId, string? newName)
+        public void AddColumn(ColumnDirection direction, string anchorId, string? newName)
         {
             if (CurrentSession == null)
                 throw new InvalidOperationException("No file loaded.");

@@ -61,11 +61,155 @@ namespace FileMappingEngine.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unable to load {0}!.
+        ///   Looks up a localized string similar to Add column after.
         /// </summary>
-        internal static string Error_load {
+        internal static string ColumnAddAfter {
             get {
-                return ResourceManager.GetString("Error_load", resourceCulture);
+                return ResourceManager.GetString("ColumnAddAfter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add column before.
+        /// </summary>
+        internal static string ColumnAddBefore {
+            get {
+                return ResourceManager.GetString("ColumnAddBefore", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Define formula.
+        /// </summary>
+        internal static string ColumnFormula {
+            get {
+                return ResourceManager.GetString("ColumnFormula", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Merge columns.
+        /// </summary>
+        internal static string ColumnMerge {
+            get {
+                return ResourceManager.GetString("ColumnMerge", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove column.
+        /// </summary>
+        internal static string ColumnRemove {
+            get {
+                return ResourceManager.GetString("ColumnRemove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove columns.
+        /// </summary>
+        internal static string ColumnRemovePlural {
+            get {
+                return ResourceManager.GetString("ColumnRemovePlural", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Rename column.
+        /// </summary>
+        internal static string ColumnRename {
+            get {
+                return ResourceManager.GetString("ColumnRename", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set data type.
+        /// </summary>
+        internal static string ColumnSetDt {
+            get {
+                return ResourceManager.GetString("ColumnSetDt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed adding {0};.
+        /// </summary>
+        internal static string Fail_add {
+            get {
+                return ResourceManager.GetString("Fail_add", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to apply {0}!.
+        /// </summary>
+        internal static string Fail_apply {
+            get {
+                return ResourceManager.GetString("Fail_apply", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to change {0}!.
+        /// </summary>
+        internal static string Fail_change {
+            get {
+                return ResourceManager.GetString("Fail_change", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to load {0}!.
+        /// </summary>
+        internal static string Fail_load {
+            get {
+                return ResourceManager.GetString("Fail_load", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to remove {0}!.
+        /// </summary>
+        internal static string Fail_remove {
+            get {
+                return ResourceManager.GetString("Fail_remove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to save {0}!.
+        /// </summary>
+        internal static string Fail_save {
+            get {
+                return ResourceManager.GetString("Fail_save", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} saved successfully..
+        /// </summary>
+        internal static string Success_save {
+            get {
+                return ResourceManager.GetString("Success_save", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please fill in all fields!.
+        /// </summary>
+        internal static string Warning_fillFielfs {
+            get {
+                return ResourceManager.GetString("Warning_fillFielfs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No {0} loaded!.
+        /// </summary>
+        internal static string Warning_notLoaded {
+            get {
+                return ResourceManager.GetString("Warning_notLoaded", resourceCulture);
             }
         }
     }

@@ -61,11 +61,29 @@ namespace FileMappingEngine.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to column.
+        /// </summary>
+        internal static string Column {
+            get {
+                return ResourceManager.GetString("Column", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to columns.
+        /// </summary>
+        internal static string ColumnPlural {
+            get {
+                return ResourceManager.GetString("ColumnPlural", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error.
         /// </summary>
-        internal static string ErrorCapitalize {
+        internal static string Error {
             get {
-                return ResourceManager.GetString("ErrorCapitalize", resourceCulture);
+                return ResourceManager.GetString("Error", resourceCulture);
             }
         }
         
@@ -102,6 +120,51 @@ namespace FileMappingEngine.Resources {
         internal static string FilePlural {
             get {
                 return ResourceManager.GetString("FilePlural", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to header row.
+        /// </summary>
+        internal static string HeaderRow {
+            get {
+                return ResourceManager.GetString("HeaderRow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Header row.
+        /// </summary>
+        internal static string HeaderRowCapitalize {
+            get {
+                return ResourceManager.GetString("HeaderRowCapitalize", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Info.
+        /// </summary>
+        internal static string Info {
+            get {
+                return ResourceManager.GetString("Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to mapping.
+        /// </summary>
+        internal static string Mapping {
+            get {
+                return ResourceManager.GetString("Mapping", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Warning.
+        /// </summary>
+        internal static string Warning {
+            get {
+                return ResourceManager.GetString("Warning", resourceCulture);
             }
         }
     }

@@ -10,6 +10,8 @@ using System.IO;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Windows;
+using static FileMappingEngine.Lib.Models.Enums;
 
 namespace FileMappingEngine.Lib.Services
 {
@@ -136,7 +138,7 @@ namespace FileMappingEngine.Lib.Services
                         if (step.Parameters == null)
                             throw new InvalidOperationException("Parameters missing for AddColumn action.");
                         string anchorId = step.Parameters["AnchorColumnId"].ToString() ?? throw new InvalidOperationException("Anchor column ID missing.");
-                        string direction = step.Parameters["Direction"].ToString() ?? throw new InvalidOperationException("Direction missing.");
+                        ColumnDirection direction = Enum.Parse<ColumnDirection>(step.Parameters["Direction"].ToString() ?? throw new InvalidOperationException("Direction missing."));
                         string? givenName = step.Parameters.TryGetValue("NewName", out object? value) ? value.ToString() : null;
                         Type? type = step.Parameters.TryGetValue("DataType", out object? typeValue) ? Type.GetType(typeValue.ToString() ?? "") : null;
 
