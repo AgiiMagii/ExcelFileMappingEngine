@@ -1,7 +1,7 @@
 # ExcelFileMappingEngine
 
 Rīks, kas automatizē garlaicīgo un atkārtojošos Excel failu apstrādes daļu — veidots ar C#, WPF un PostgreSQL.
-
+![Workflow](Docs/WorkflowNew.png)
 ## Par projektu
 
 Šis rīks tiek izstrādāts ikvienam, kurš ikdienā strādā ar Excel failiem un atkal un atkal dara vienas un tās pašas garlaicīgās darbības — dzēš vienas un tās pašas kolonnas, veic vienus un tos pašus aprēķinus vai sakārto vienus un tos pašus datus, lai pielāgotu failu tālākam darbam - nosūtīšanai klientam vai kolēģim, vai izmantošanai savā darbā.
