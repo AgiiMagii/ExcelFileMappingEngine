@@ -27,7 +27,7 @@ namespace FileMappingEngine
         // TODO:
         // - Review and refactor the undo functionality
         // - Review reset functionality and consider resetting the header row to default
-        // - Consider refactoring RemoveColumns and add functionality in AppManager to remove multiple columns at once not one by one
+        // - Refactor RemoveColumns
 
 
         private readonly AppManager appManager;
@@ -477,7 +477,6 @@ namespace FileMappingEngine
         // Continue from here with code cleanup and optimization
         private void RenameColumnMenuItem_Click(object sender, RoutedEventArgs e)
         {
-
             if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
                 return;
 
