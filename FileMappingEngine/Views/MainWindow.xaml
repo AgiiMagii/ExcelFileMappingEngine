@@ -310,6 +310,39 @@
             </Border>
 
         </Grid>
+        <Grid x:Name="HeaderRowOverlay"
+      Background="#AA000000"
+      Visibility="Collapsed">
+
+            <Border Width="320"
+            Padding="25"
+            Background="White"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+
+                <StackPanel>
+
+                    <TextBlock Text="Select Header Row"
+                       FontSize="22"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,20"/>
+
+                    <ComboBox x:Name="CbHeaderRowOverlay"
+                      Height="30"
+                      SelectionChanged="CbHeaderRowOverlay_SelectionChanged"/>
+
+                    <Button Content="Skip"
+                    Width="100"
+                    Margin="0,20,0,0"
+                    HorizontalAlignment="Center"
+                    Click="SkipHeaderRow_Click"/>
+
+                </StackPanel>
+
+            </Border>
+
+        </Grid>
     </Grid>
     
 </Window>

@@ -28,12 +28,14 @@ namespace FileMappingEngine
         // - Review and refactor the undo functionality
         // - Review reset functionality and consider resetting the header row to default
         // - Refactor RemoveColumns
+        // - Add back CurrentMapping state and disable mapping save and context menu options when no mapping is applied
+        // - Ask user to provide column index when opening a file - if not provided, default to 1 and can be changed afterwards - this reduces the need for resetting data and comparing file fingerprints when changing the header row
 
 
         private readonly AppManager appManager;
         private readonly UiHelper helper = new();
         private readonly HashSet<string> _selectedColumns = [];
-        private bool _isFirstLoad = false;
+        private string? fileName;
         private bool _allowSorting = false;
         private string? _oldColumnName;
         public MainWindow(AppManager appManager)
@@ -42,21 +44,18 @@ namespace FileMappingEngine
             this.appManager = appManager;
         }
 
-        private async Task LoadFileAsync(string fileName)
+        private async Task LoadFileAsync(string fileName, int? headerRowIndex)
         {
             try
             {
-                await appManager.OpenFile(fileName);
+                await appManager.OpenFile(fileName, headerRowIndex);
 
                 if (!appManager.HasFile)
                     return;
 
                 headerRowPanel.IsEnabled = true;
 
-                if (_isFirstLoad)
-                {
-                    LoadComboBox();
-                }
+                LoadComboBox();
 
                 await GenerateMappingSetButtons();
 
@@ -173,12 +172,44 @@ namespace FileMappingEngine
 
             if (ofd.ShowDialog() == true)
             {
-                _isFirstLoad = true;
-                await LoadFileAsync(ofd.FileName);
-                _isFirstLoad = false;
+                fileName = ofd.FileName;
+                LoadCbHeaderRowOverlay();
+                HeaderRowOverlay.Visibility = Visibility.Visible;
+            }
+        }
+        private async void CbHeaderRowOverlay_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            HeaderRowOverlay?.Visibility = Visibility.Collapsed;
+
+            if (CbHeaderRowOverlay.SelectedIndex < 0 || string.IsNullOrEmpty(fileName))
+                return;
+
+            int? headerRowIndex = CbHeaderRowOverlay.SelectedValue != null ? (int)CbHeaderRowOverlay.SelectedValue : null;
+
+            try
+            {
+                
+                await LoadFileAsync(fileName, headerRowIndex);
 
                 txtFilePath.Text = appManager?.Session?.File?.FileName;
             }
+            catch (Exception)
+            {
+                MessageBox.Show(string.Format(UiMessages.Fail_change, UiTerms.HeaderRow), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void LoadCbHeaderRowOverlay()
+        {
+            CbHeaderRowOverlay.Items.Clear();
+            for (int i = 1; i <= 20; i++)
+            {
+                CbHeaderRowOverlay.Items.Add(i);
+            }
+        }
+        private async void SkipHeaderRow_Click(object sender, RoutedEventArgs e)
+        {
+            HeaderRowOverlay.Visibility = Visibility.Collapsed;
+            await LoadFileAsync(fileName, null);
         }
         private async void MappingSetButton_Click(object sender, RoutedEventArgs e)
         {

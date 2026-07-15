@@ -51,9 +51,9 @@ namespace FileMappingEngine.Lib
             _mappingService = mappingService ?? throw new ArgumentNullException(nameof(mappingService));
         }
 
-        public async Task OpenFile(string path)
+        public async Task OpenFile(string path, int? headerRowIndex)
         {
-            var session = await _fileService.OpenFile(path);
+            var session = await _fileService.OpenFile(path, headerRowIndex);
 
             if (session == null)
                 throw new InvalidOperationException("Failed to open the file.");

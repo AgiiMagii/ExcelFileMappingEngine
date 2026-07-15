@@ -20,7 +20,7 @@ namespace FileMappingEngine.Lib.Services
         {
             this.fileRepository = fileRepository;
         }
-        public async Task<DataSession> OpenFile(string path)
+        public async Task<DataSession> OpenFile(string path, int? headerRowIndex)
         {
             RawExcelData rawData = ExcelHelper.LoadRawData(path);
 
@@ -36,8 +36,7 @@ namespace FileMappingEngine.Lib.Services
             DataState dataState = new DataState
             {
                 RawData = rawData,
-                HeaderRowIndex = 1,
-                
+                HeaderRowIndex = headerRowIndex ?? 1,
             };
 
             ExcelHelper.BuildCurrentData(dataState);
