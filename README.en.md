@@ -73,7 +73,7 @@ The main goal of the refactoring was not only to make the code work, but to crea
 
 The application follows a layered architecture approach:
 
-
+![Architecture](Docs/Architecture.png)
 
 
 **Main components:**
@@ -81,9 +81,11 @@ The application follows a layered architecture approach:
 - **WPF UI** — handles user interaction and visual presentation.
 - **AppManager** — coordinates application workflows and connects the UI with application logic.
 - **Services** — contain the core application operations:
+  
   - **FileService** — handles file loading and file-related operations;
   - **DataService** — manages data transformations and in-memory data manipulation;
   - **MappingService** — manages creation, storage, and application of reusable mappings.
+    
 - **Repositories** — handle communication with the database and data persistence.
 - **DataSession** — acts as a container for the current working context. It contains state models such as **FileState** and **DataState**, which store information about the opened file, loaded data, mappings, and related metadata.
 
