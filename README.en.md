@@ -2,7 +2,7 @@
 
 A tool that automates the boring, repetitive parts of cleaning up Excel files — built with C#, WPF, and PostgreSQL.
 
-![Workflow](Docs/workflow%20(2).png)
+![Workflow](Docs/WorkflowNew.png)
 
 
 ## About the Project
