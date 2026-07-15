@@ -1,6 +1,7 @@
 # ExcelFileMappingEngine
 
 Rīks, kas automatizē garlaicīgo un atkārtojošos Excel failu apstrādes daļu — veidots ar C#, WPF un PostgreSQL.
+
 ![Workflow](Docs/WorkflowNew.png)
 ## Par projektu
 
@@ -84,14 +85,18 @@ Sadalīju klašu atbildibas, atdalīju lietotāja saskarni no pārējā projekta
 
 ## Projekta struktūra
 
+![Architecture](Docs/Architecture.png)
+
 ### Galvenās komponentes
 
 - **WPF UI** — nodrošina lietotāja saskarni un vizuālo attēlojumu.
 - **AppManager** — koordinē aplikācijas darbplūsmas un savieno lietotāja saskarni ar biznesa loģiku.
 - **Services** — satur galveno aplikācijas loģiku:
+  
     FileService — failu ielāde un ar failiem saistītās darbības;
     DataService — datu pārveidošana un darbs ar datiem atmiņā;
     MappingService — instrukciju izveide, saglabāšana un pielietošana.
+  
 - **Repositories** — nodrošina saziņu ar datubāzi un datu saglabāšanu.
 **DataSession** — glabā pašreizējās darba sesijas informāciju. Tajā iekļauti tādi stāvokļa modeļi kā **FileState** un **DataState**, kuros tiek glabāta informācija par atvērto failu, datiem, instrukcijām un citiem saistītajiem datiem.
 
