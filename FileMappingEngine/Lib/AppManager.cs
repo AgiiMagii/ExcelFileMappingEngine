@@ -42,6 +42,7 @@ namespace FileMappingEngine.Lib
         public string? CurrentFileName => Session.File?.FileName;
         public bool IsSorted => Session.Data?.SortedColumn != null;
         public bool HasFile => CurrentSession != null;
+        public bool IsMappingApplied => Session.Data?.IsMappingApplied ?? false;
 
         public AppManager(FileService fileService, DataService dataService, MappingRepository mappingRepository, MappingService mappingService)
         {
@@ -172,6 +173,13 @@ namespace FileMappingEngine.Lib
                 throw new InvalidOperationException("No file loaded.");
 
             _dataService.ResetTable(CurrentSession.Data);
+        }
+
+        public void ClearCurrentMapping()
+        {
+            if (CurrentSession == null || CurrentSession.Data == null)
+                throw new InvalidOperationException("No file loaded.");
+            _dataService.SetIsAppliedMappingFalse(CurrentSession.Data);
         }
 
         public void UndoLastAction()

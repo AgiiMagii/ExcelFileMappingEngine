@@ -19,7 +19,7 @@ namespace FileMappingEngine.Lib.Services
         {
             if (dataState == null)
                 throw new InvalidOperationException("No file loaded.");
-            
+
             ExcelHelper.BuildCurrentData(dataState);
         }
 
@@ -418,6 +418,14 @@ namespace FileMappingEngine.Lib.Services
 
                 row[targetColumn] = result;
             }
+        }
+
+        public void SetIsAppliedMappingFalse(DataState dataState)
+        {
+            if (dataState == null)
+                throw new InvalidOperationException("No file loaded.");
+
+            dataState.IsMappingApplied = false;
         }
     }
 }

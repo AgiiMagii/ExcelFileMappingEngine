@@ -28,8 +28,6 @@ namespace FileMappingEngine
         // - Review and refactor the undo functionality
         // - Review reset functionality and consider resetting the header row to default
         // - Refactor RemoveColumns
-        // - Add back CurrentMapping state and disable mapping save and context menu options when no mapping is applied
-        // - Ask user to provide column index when opening a file - if not provided, default to 1 and can be changed afterwards - this reduces the need for resetting data and comparing file fingerprints when changing the header row
 
 
         private readonly AppManager appManager;
@@ -208,9 +206,27 @@ namespace FileMappingEngine
         }
         private async void SkipHeaderRow_Click(object sender, RoutedEventArgs e)
         {
+            if (fileName == null)
+                return;
+
             HeaderRowOverlay.Visibility = Visibility.Collapsed;
             await LoadFileAsync(fileName, null);
         }
+
+        private void ChangeUIStateForMappingApplied()
+        {
+            if (appManager.IsMappingApplied)
+            {
+                headerRowPanel.IsEnabled = false;
+                SaveMapping.IsEnabled = false;
+            }
+            else
+            {
+                headerRowPanel.IsEnabled = true;
+                SaveMapping.IsEnabled = true;
+            }
+        }
+
         private async void MappingSetButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not Button button)
@@ -221,6 +237,9 @@ namespace FileMappingEngine
                 long id = Convert.ToInt64(button.Tag);
 
                 await appManager.ApplyMappingSetAsync(id);
+
+                ChangeUIStateForMappingApplied();
+
                 ReloadGrid();
             }
             catch (Exception)
@@ -297,7 +316,15 @@ namespace FileMappingEngine
         {
             if (appManager.Session?.File == null)
                 return;
+
             appManager.ResetTable();
+
+            if (appManager.IsMappingApplied)
+            {
+                appManager.ClearCurrentMapping();
+                ChangeUIStateForMappingApplied();
+            }
+
             ReloadGrid();
         }
         private void CancelSaveMapping_Click(object sender, RoutedEventArgs e)
@@ -319,6 +346,12 @@ namespace FileMappingEngine
         {
             if (sender is not DataGridColumnHeader header)
                 return;
+
+            if (appManager.IsMappingApplied)
+            {
+                e.Handled = true;
+                return;
+            }
 
             if (_selectedColumns.Count > 1)
             {

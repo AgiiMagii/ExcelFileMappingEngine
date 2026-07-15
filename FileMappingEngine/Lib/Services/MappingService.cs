@@ -100,6 +100,7 @@ namespace FileMappingEngine.Lib.Services
             dataService.UpdateHeaderRow(session.Data, headerRow);
 
             ExecuteMappingSteps(mapping, session, dataService);
+            session.Data.IsMappingApplied = true;
         }
 
         public async Task<MappingSet?> GetMappingById(long id)
