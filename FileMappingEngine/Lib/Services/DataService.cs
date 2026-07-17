@@ -27,10 +27,14 @@ namespace FileMappingEngine.Lib.Services
         {
             if (session.Data == null)
                 throw new InvalidOperationException("No file loaded.");
-            if (session.Data.PreviousData == null)
+            if (session.Data.UndoStateHistory == null || session.Data.UndoStateHistory.Count == 0)
                 throw new InvalidOperationException("No previous state available.");
             UndoLastStep(session);
-            session.Data.CurrentData = session.Data.PreviousData.Copy();
+            var previousState = session.Data.UndoStateHistory.Pop();
+            if (previousState != null)
+            {
+                session.Data.CurrentData = previousState.PreviousData?.Copy();
+            }
         }
 
         public void UpdateHeaderRow(DataState dataState, int newHeaderRow)
@@ -74,6 +78,41 @@ namespace FileMappingEngine.Lib.Services
                 Order = session.MappingSet.Steps.Count + 1
             });
         }
+        public void RemoveColumnsCore(DataState dataState, IEnumerable<string> columnNames)
+        {
+            if (dataState.CurrentData == null)
+                throw new InvalidOperationException("No data loaded.");
+            foreach (var columnName in columnNames)
+            {
+                if (dataState.CurrentData.Columns.Contains(columnName))
+                {
+                    dataState.CurrentData.Columns.Remove(columnName);
+                }
+            }
+        }
+        public void RemoveColumns(DataSession session, IEnumerable<string> columnNames)
+        {
+            if (session.Data == null)
+                throw new InvalidOperationException("No data loaded.");
+
+            var columns = columnNames.ToList();
+
+            SavePreviousState(session);
+
+            RemoveColumnsCore(session.Data, columns);
+
+            session.MappingSet.Steps.Add(new ActionStep
+            {
+                ActionType = "DeleteColumns",
+                Order = session.MappingSet.Steps.Count + 1,
+
+                Parameters = new Dictionary<string, object>
+                {
+                    ["ColumnIds"] = columns
+                }
+            });
+        }
+
 
         public string AddColumnCore(DataState dataState, ColumnDirection direction, string anchorId, string? newName, Type? dataType = null)
         {
@@ -309,7 +348,24 @@ namespace FileMappingEngine.Lib.Services
             if (session.Data.CurrentData == null)
                 throw new InvalidOperationException("No current data loaded.");
 
-            session.Data.PreviousData = session.Data.CurrentData.Copy();
+            session.Data.UndoStateHistory.Push(new UndoState
+            {
+                PreviousData = session.Data.CurrentData.Copy(),
+                PreviousSteps = CloneSteps(session.MappingSet.Steps)
+            });
+        }
+
+        private List<ActionStep> CloneSteps(List<ActionStep> steps)
+        {
+            return steps.Select(step => new ActionStep
+            {
+                Order = step.Order,
+                ActionType = step.ActionType,
+                ColumnId = step.ColumnId,
+                Parameters = step.Parameters != null
+                    ? new Dictionary<string, object>(step.Parameters)
+                    : null
+            }).ToList();
         }
 
         public void ClearSteps(DataSession session)

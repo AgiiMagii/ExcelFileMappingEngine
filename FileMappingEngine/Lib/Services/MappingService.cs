@@ -135,6 +135,32 @@ namespace FileMappingEngine.Lib.Services
                             throw new InvalidOperationException("Column ID missing for DeleteColumn action.");
                         dataService.RemoveColumnCore(session.Data, step.ColumnId);
                         break;
+                    case "DeleteColumns":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for DeleteColumns action.");
+
+                        if (!step.Parameters.TryGetValue("ColumnIds", out object? columnIdsObj))
+                            throw new InvalidOperationException("Column IDs missing for DeleteColumns action.");
+
+                        List<string>? columnIds = null;
+
+                        if (columnIdsObj is JsonElement jsonElement)
+                        {
+                            columnIds = jsonElement
+                                .EnumerateArray()
+                                .Select(x => x.GetString()!)
+                                .ToList();
+                        }
+                        else if (columnIdsObj is IEnumerable<string> strings)
+                        {
+                            columnIds = strings.ToList();
+                        }
+
+                        if (columnIds == null)
+                            throw new InvalidOperationException("Invalid column IDs format.");
+
+                        dataService.RemoveColumnsCore(session.Data, columnIds);
+                        break;
                     case "AddColumn":
                         if (step.Parameters == null)
                             throw new InvalidOperationException("Parameters missing for AddColumn action.");

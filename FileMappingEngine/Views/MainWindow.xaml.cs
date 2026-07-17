@@ -490,13 +490,8 @@ namespace FileMappingEngine
 
             try
             {
-                foreach (var columnName in columns)
-                {
-                    if (string.IsNullOrEmpty(columnName))
-                        continue;
+                appManager.RemoveColumns(columns);
 
-                    appManager.RemoveColumn(columnName);
-                }
                 ReloadGrid();
                 _selectedColumns.Clear();
             }

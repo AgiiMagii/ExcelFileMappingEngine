@@ -16,7 +16,7 @@ namespace FileMappingEngine.Lib.Models
 
         public DataTable? CurrentData { get; set; }
 
-        public DataTable? PreviousData { get; set; }
+        public Stack<UndoState?> UndoStateHistory { get; set; } = new Stack<UndoState?>();
 
         public List<string[]>? IgnoredRows { get; set; }
 

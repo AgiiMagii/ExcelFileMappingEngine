@@ -127,6 +127,14 @@ namespace FileMappingEngine.Lib
             _dataService.RemoveColumn(CurrentSession, columnName);
         }
 
+        public void RemoveColumns(IEnumerable<string> columnNames)
+        {
+            if (CurrentSession == null)
+                throw new InvalidOperationException("No file loaded.");
+
+            _dataService.RemoveColumns(CurrentSession, columnNames);
+        }
+
         public void AddColumn(ColumnDirection direction, string anchorId, string? newName)
         {
             if (CurrentSession == null)
