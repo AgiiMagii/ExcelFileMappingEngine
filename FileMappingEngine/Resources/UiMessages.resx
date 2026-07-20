@@ -153,19 +153,34 @@
   <data name="Fail_load" xml:space="preserve">
     <value>Failed to load {0}!</value>
   </data>
+  <data name="Fail_merge" xml:space="preserve">
+    <value>Failed to merge {0}!</value>
+  </data>
   <data name="Fail_remove" xml:space="preserve">
     <value>Failed to remove {0}!</value>
+  </data>
+  <data name="Fail_rename" xml:space="preserve">
+    <value>Failed to rename {0}!</value>
   </data>
   <data name="Fail_save" xml:space="preserve">
     <value>Failed to save {0}!</value>
   </data>
+  <data name="Confirm_sort" xml:space="preserve">
+    <value>Do you want to change sorting by {0}?</value>
+  </data>
   <data name="Success_save" xml:space="preserve">
     <value>{0} saved successfully.</value>
   </data>
+  <data name="Warning_alreadyExists" xml:space="preserve">
+    <value>{0} {1} already exists!</value>
+  </data>
   <data name="Warning_fillFielfs" xml:space="preserve">
-    <value>Please fill in all fields!</value>
+    <value>Please fill in required fields!</value>
   </data>
   <data name="Warning_notLoaded" xml:space="preserve">
     <value>No {0} loaded!</value>
+  </data>
+  <data name="Fail_sort" xml:space="preserve">
+    <value>Failed to sort by {0}!</value>
   </data>
 </root>

@@ -25,17 +25,14 @@ namespace FileMappingEngine
     public partial class MainWindow : Window
     {
         // TODO:
-        // - Review and refactor the undo functionality
         // - Review reset functionality and consider resetting the header row to default
-        // - Refactor RemoveColumns
-
 
         private readonly AppManager appManager;
         private readonly UiHelper helper = new();
         private readonly HashSet<string> _selectedColumns = [];
         private string? fileName;
         private bool _allowSorting = false;
-        private string? _oldColumnName;
+        private string? _selectedColumnName;
         public MainWindow(AppManager appManager)
         {
             InitializeComponent();
@@ -177,7 +174,7 @@ namespace FileMappingEngine
         }
         private async void CbHeaderRowOverlay_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            HeaderRowOverlay?.Visibility = Visibility.Collapsed;
+            HeaderRowOverlay.Visibility = Visibility.Collapsed;
 
             if (CbHeaderRowOverlay.SelectedIndex < 0 || string.IsNullOrEmpty(fileName))
                 return;
@@ -532,20 +529,17 @@ namespace FileMappingEngine
             }
         }
 
-
-        // Continue from here with code cleanup and optimization
         private void RenameColumnMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
                 return;
 
-            _oldColumnName = column.Header?.ToString();
+            _selectedColumnName = column.Header?.ToString();
 
-            if (string.IsNullOrWhiteSpace(_oldColumnName))
+            if (string.IsNullOrWhiteSpace(_selectedColumnName))
                 return;
 
-            txtCurrentColumnName.Text = _oldColumnName;
-            txtNewColumnName.Text = _oldColumnName;
+            txtCurrentColumnName.Text = _selectedColumnName;
 
             txtRenameValidation.Visibility = Visibility.Collapsed;
 
@@ -557,38 +551,49 @@ namespace FileMappingEngine
 
             if (string.IsNullOrWhiteSpace(newName))
             {
-                txtRenameValidation.Text = "Column name cannot be empty.";
+                txtRenameValidation.Text = string.Format(UiMessages.Warning_fillFielfs);
                 txtRenameValidation.Visibility = Visibility.Visible;
                 return;
             }
 
             if (appManager.IsColumnNameTaken(newName))
             {
-                txtRenameValidation.Text = $"Column '{newName}' already exists.";
+                txtRenameValidation.Text = string.Format(UiMessages.Warning_alreadyExists, UiTerms.ColumnCapitalize, newName);
                 txtRenameValidation.Visibility = Visibility.Visible;
                 return;
             }
 
-            appManager.RenameColumn(_oldColumnName!, newName);
+            if (_selectedColumnName == null)
+                return;
+            
 
-            var data = appManager.CurrentData ?? throw new InvalidOperationException("No data available.");
+            try
+            {
+                appManager.RenameColumn(_selectedColumnName, newName);
 
-            helper.ReloadDataGrid(dataGrid, data);
+                var data = appManager.CurrentData ?? new DataTable();
 
-            RenameColumnOverlay.Visibility = Visibility.Collapsed;
+                helper.ReloadDataGrid(dataGrid, data);
+
+                RenameColumnOverlay.Visibility = Visibility.Collapsed;
+            }
+            catch (Exception) {
+
+                MessageBox.Show(string.Format(UiMessages.Fail_rename, UiTerms.Column), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void SetDataTypeMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
                 return;
-            string? columnName = column.Header?.ToString();
+            _selectedColumnName = column.Header?.ToString();
 
-            if (string.IsNullOrWhiteSpace(columnName))
+            if (string.IsNullOrWhiteSpace(_selectedColumnName))
                 return;
 
             LoadComboForDataTypeOverlay();
-            txtDataTypeColumn.Text = columnName;
+            txtDataTypeColumn.Text = _selectedColumnName;
             ChangeDataTypeOverlay.Visibility = Visibility.Visible;
         }
         private void LoadComboForDataTypeOverlay()
@@ -604,29 +609,37 @@ namespace FileMappingEngine
             if (cmbDataType.SelectedItem is not DataType selectedDataType)
                 return;
 
-            string? columnName = txtDataTypeColumn.Text;
-
-            if (string.IsNullOrWhiteSpace(columnName))
+            if (string.IsNullOrWhiteSpace(_selectedColumnName))
                 return;
 
-            appManager.SetColumnDataType(columnName, selectedDataType);
+            try
+            {
+                appManager.SetColumnDataType(_selectedColumnName, selectedDataType);
+                ChangeDataTypeOverlay.Visibility = Visibility.Collapsed;
 
-            ChangeDataTypeOverlay.Visibility = Visibility.Collapsed;
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(string.Format(UiMessages.Fail_change, UiTerms.DataType), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
         }
 
         private void MergeColumnsMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
                 return;
-            string? columnName = column.Header?.ToString(); // kolonna, kurai tiks pielietota formula
+
+            string? columnName = column.Header?.ToString();
+
             if (string.IsNullOrWhiteSpace(columnName))
                 return;
 
-            LoadCombosForMergeOverlay();
+            LoadCombosForMergeOverlay(columnName);
 
             MergeColumnsOverlay.Visibility = Visibility.Visible;
         }
-        private void LoadCombosForMergeOverlay()
+        private void LoadCombosForMergeOverlay(string? selectedColumnName = null)
         {
             List<ColumnReference> columns = appManager.GetDataColumns() ?? [];
 
@@ -635,6 +648,12 @@ namespace FileMappingEngine
 
             cmbMergeColumn1.DisplayMemberPath = "Name";
             cmbMergeColumn2.DisplayMemberPath = "Name";
+
+            if (!string.IsNullOrWhiteSpace(selectedColumnName))
+            {
+                cmbMergeColumn1.SelectedItem =
+                    columns.FirstOrDefault(c => c.Name == selectedColumnName);
+            }
         }
         private void SaveMergeColumns_Click(object sender, RoutedEventArgs e)
         {
@@ -645,9 +664,16 @@ namespace FileMappingEngine
 
             string resultName = txtMergeResultColumn.Text;
 
-            appManager.MergeColumns(first, second, separator, resultName);
-            ReloadGrid();
-            MergeColumnsOverlay.Visibility = Visibility.Collapsed;
+            try
+            {
+                appManager.MergeColumns(first, second, separator, resultName);
+                ReloadGrid();
+                MergeColumnsOverlay.Visibility = Visibility.Collapsed;
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(string.Format(UiMessages.Fail_merge, UiTerms.ColumnPlural), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void WriteFormulaMenuItem_Click(object sender, RoutedEventArgs e)
@@ -682,11 +708,7 @@ namespace FileMappingEngine
         {
             if (!_allowSorting)
             {
-                MessageBoxResult result = MessageBox.Show(
-                    "Vai vēlaties mainīt kārtošanas secību?",
-                    "Apstiprinājums",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
+                MessageBoxResult result = MessageBox.Show(string.Format(UiMessages.Confirm_sort, e.Column.Header), UiTerms.Confirmation, MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                 if (result != MessageBoxResult.Yes)
                 {
@@ -701,8 +723,14 @@ namespace FileMappingEngine
 
             bool ascending =
                 e.Column.SortDirection != ListSortDirection.Ascending;
-
-            appManager.SortData(columnName, ascending);
+            try
+            {
+                appManager.SortData(columnName, ascending);
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(string.Format(UiMessages.Fail_sort, columnName), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void CancelRenameColumn_Click(object sender, RoutedEventArgs e)

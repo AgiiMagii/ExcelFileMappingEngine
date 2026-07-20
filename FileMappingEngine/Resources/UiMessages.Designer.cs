@@ -133,6 +133,15 @@ namespace FileMappingEngine.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Do you want to change sorting by {0}?.
+        /// </summary>
+        internal static string Confirm_sort {
+            get {
+                return ResourceManager.GetString("Confirm_sort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Failed adding {0};.
         /// </summary>
         internal static string Fail_add {
@@ -169,11 +178,29 @@ namespace FileMappingEngine.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Failed to merge {0}!.
+        /// </summary>
+        internal static string Fail_merge {
+            get {
+                return ResourceManager.GetString("Fail_merge", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Failed to remove {0}!.
         /// </summary>
         internal static string Fail_remove {
             get {
                 return ResourceManager.GetString("Fail_remove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to rename {0}!.
+        /// </summary>
+        internal static string Fail_rename {
+            get {
+                return ResourceManager.GetString("Fail_rename", resourceCulture);
             }
         }
         
@@ -187,6 +214,15 @@ namespace FileMappingEngine.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Failed to sort by {0}!.
+        /// </summary>
+        internal static string Fail_sort {
+            get {
+                return ResourceManager.GetString("Fail_sort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} saved successfully..
         /// </summary>
         internal static string Success_save {
@@ -196,7 +232,16 @@ namespace FileMappingEngine.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Please fill in all fields!.
+        ///   Looks up a localized string similar to {0} {1} already exists!.
+        /// </summary>
+        internal static string Warning_alreadyExists {
+            get {
+                return ResourceManager.GetString("Warning_alreadyExists", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please fill in required fields!.
         /// </summary>
         internal static string Warning_fillFielfs {
             get {
