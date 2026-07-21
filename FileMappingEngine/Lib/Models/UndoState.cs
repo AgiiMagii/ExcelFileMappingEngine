@@ -9,5 +9,7 @@ namespace FileMappingEngine.Lib.Models
     {
         public DataTable? PreviousData { get; set; }
         public List<ActionStep> PreviousSteps { get; set; } = new();
+        public bool? PreviousSortAscending { get; set; }
+        public string? PreviousSortedColumn { get; set; }
     }
 }

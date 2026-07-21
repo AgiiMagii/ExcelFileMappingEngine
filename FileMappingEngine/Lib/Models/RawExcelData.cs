@@ -1,4 +1,5 @@
 ﻿
+using DocumentFormat.OpenXml.Drawing.Diagrams;
 using System.Data;
 
 namespace FileMappingEngine.Lib.Models
@@ -8,5 +9,7 @@ namespace FileMappingEngine.Lib.Models
         public DataTable? Data { get; set; }
 
         public List<ColumnReference> Columns { get; set; } = new();
+
+        public List<CellReference> Cells { get; set; } = new();
     }
 }

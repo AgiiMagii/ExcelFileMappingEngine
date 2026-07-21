@@ -34,6 +34,8 @@ namespace FileMappingEngine.Lib.Services
             if (previousState != null)
             {
                 session.Data.CurrentData = previousState.PreviousData?.Copy();
+                session.Data.SortAscending = previousState.PreviousSortAscending;
+                session.Data.SortedColumn = previousState.PreviousSortedColumn;
             }
         }
 
@@ -351,7 +353,9 @@ namespace FileMappingEngine.Lib.Services
             session.Data.UndoStateHistory.Push(new UndoState
             {
                 PreviousData = session.Data.CurrentData.Copy(),
-                PreviousSteps = CloneSteps(session.MappingSet.Steps)
+                PreviousSteps = CloneSteps(session.MappingSet.Steps),
+                PreviousSortAscending = session.Data.SortAscending,
+                PreviousSortedColumn = session.Data.SortedColumn
             });
         }
 

@@ -1,35 +1,15 @@
-﻿using DocumentFormat.OpenXml.Bibliography;
-using DocumentFormat.OpenXml.Drawing.Diagrams;
-using DocumentFormat.OpenXml.InkML;
-using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
-using DocumentFormat.OpenXml.Spreadsheet;
-using FileMappingEngine.Lib.Database.Repositories;
+﻿using FileMappingEngine.Lib.Database.Repositories;
 using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Services;
 using FileMappingEngine.Lib.Sessions;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Drawing.Text;
-using System.IO;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Windows.Controls;
 using static FileMappingEngine.Lib.Models.Enums;
 
 namespace FileMappingEngine.Lib
 {
     public class AppManager
     {
-        // Kad veidos validāciju, pievienot pārbaudi uz header row change,
-        // lai pārliecinātos, ka nav mainījušās kolonnas, kas jau ir izmantotas mappingos
-        // un brīdinātu lietotāju, ka pēc header row maiņas, veiktie mappingi tiks dzēsti.
-
-        // Esošo mappingu pogas jārāda tikai tās, kuras piemērotas konkrētam failam
-        // - izveidot pārbaudi, kas nosaka, kuri mappingi atbilst faila struktūrai.
         private readonly MappingService _mappingService;
         private readonly FileService _fileService;
         private readonly DataService _dataService;
@@ -37,12 +17,14 @@ namespace FileMappingEngine.Lib
         private DataSession? CurrentSession { get; set; }
 
         public DataSession Session => CurrentSession ?? throw new InvalidOperationException("No file loaded.");
-        public DataTable? CurrentData => Session.Data?.CurrentData;
+        public DataTable? CurrentData => DataState.CurrentData;
+        public DataState DataState => Session.Data ?? throw new InvalidOperationException("No data state available.");
 
         public string? CurrentFileName => Session.File?.FileName;
-        public bool IsSorted => Session.Data?.SortedColumn != null;
+        public bool? SortAscending => DataState.SortAscending;
+        public string? SortColumn => DataState.SortedColumn;
         public bool HasFile => CurrentSession != null;
-        public bool IsMappingApplied => Session.Data?.IsMappingApplied ?? false;
+        public bool IsMappingApplied => DataState.IsMappingApplied;
 
         public AppManager(FileService fileService, DataService dataService, MappingRepository mappingRepository, MappingService mappingService)
         {
@@ -61,7 +43,7 @@ namespace FileMappingEngine.Lib
             if (session.Data == null)
                 throw new InvalidOperationException("Data state is not initialized.");
 
-            CurrentSession = session;   // <-- assign BEFORE the DB lookup, not after
+            CurrentSession = session;
 
             if (session.Data.FileDefinition?.Hash != null)
             {
@@ -71,26 +53,21 @@ namespace FileMappingEngine.Lib
 
         public async Task UpdateHeaderRow(int newHeaderRow)
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
             if (newHeaderRow < 0)
                 throw new ArgumentOutOfRangeException(nameof(newHeaderRow), "Header row index cannot be negative.");
-            if (CurrentSession.Data?.RawData?.Data == null)
+            if (Session.Data?.RawData?.Data == null)
                 throw new InvalidOperationException("Raw data not loaded.");
-            _dataService.UpdateHeaderRow(CurrentSession.Data, newHeaderRow);
+            _dataService.UpdateHeaderRow(Session.Data, newHeaderRow);
 
-            if (CurrentSession.Data.FileDefinition?.Hash != null)
+            if (Session.Data.FileDefinition?.Hash != null)
             {
-                await _fileService.FindMatchingFileDefinition(CurrentSession.Data);
+                await _fileService.FindMatchingFileDefinition(Session.Data);
             }
         }
 
         public void CloseCurrentFile()
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            _fileService.CloseCurrentFile(CurrentSession);
+            _fileService.CloseCurrentFile(Session);
             CurrentSession = null;
         }
 
@@ -113,107 +90,70 @@ namespace FileMappingEngine.Lib
 
         public void SaveFile(string filePath)
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            _fileService.SaveFile(CurrentSession, filePath);
+            _fileService.SaveFile(Session, filePath);
         }
 
         public void RemoveColumn(string columnName)
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            _dataService.RemoveColumn(CurrentSession, columnName);
+            _dataService.RemoveColumn(Session, columnName);
         }
 
         public void RemoveColumns(IEnumerable<string> columnNames)
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            _dataService.RemoveColumns(CurrentSession, columnNames);
+            _dataService.RemoveColumns(Session, columnNames);
         }
 
         public void AddColumn(ColumnDirection direction, string anchorId, string? newName)
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            _dataService.AddColumn(CurrentSession, direction, anchorId, newName);
+            _dataService.AddColumn(Session, direction, anchorId, newName);
         }
 
         public async Task SaveMappingSet(string fileDefName, string mappingName)
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            await _mappingService.SaveMappingSet(CurrentSession, fileDefName, mappingName);
+            await _mappingService.SaveMappingSet(Session, fileDefName, mappingName);
         }
 
         public bool IsColumnNameTaken(string columnName)
         {
-            if (CurrentSession == null || CurrentSession.Data == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            return _dataService.IsColumnNameTaken(CurrentSession.Data, columnName);
+            return _dataService.IsColumnNameTaken(DataState, columnName);
         }
 
         public void RenameColumn(string oldName, string newName)
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            _dataService.RenameColumn(CurrentSession, oldName, newName);
+            _dataService.RenameColumn(Session, oldName, newName);
         }
 
         public async Task ApplyMappingSetAsync(long id)
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            await _mappingService.ApplyMappingSetAsync(CurrentSession, _dataService, id);
+            await _mappingService.ApplyMappingSetAsync(Session, _dataService, id);
         }
 
         public void ResetTable()
         {
-            if (CurrentSession == null || CurrentSession.Data == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            _dataService.ResetTable(CurrentSession.Data);
+            _dataService.ResetTable(DataState);
         }
 
         public void ClearCurrentMapping()
         {
-            if (CurrentSession == null || CurrentSession.Data == null)
-                throw new InvalidOperationException("No file loaded.");
-            _dataService.SetIsAppliedMappingFalse(CurrentSession.Data);
+            _dataService.SetIsAppliedMappingFalse(DataState);
         }
 
         public void UndoLastAction()
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            _dataService.UndoLastAction(CurrentSession);
+            _dataService.UndoLastAction(Session);
         }
 
         public void MergeColumns(ColumnReference first, ColumnReference second, string separator, string? resultColumnName)
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            _dataService.MergeColumns(CurrentSession, first, second, separator, resultColumnName);
+            _dataService.MergeColumns(Session, first, second, separator, resultColumnName);
         }
 
         public List<ColumnReference> GetDataColumns()
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-            if (CurrentSession.Data?.CurrentData == null)
-                throw new InvalidOperationException("Current data not available.");
+            if (CurrentData == null)
+                return [];
 
-            return [.. CurrentSession.Data.CurrentData.Columns
+            return [.. CurrentData.Columns
                 .Cast<DataColumn>()
                 .Select((col, index) => new ColumnReference
                 {
@@ -226,36 +166,27 @@ namespace FileMappingEngine.Lib
 
         public int GetColumnCount()
         {
-            if (CurrentSession == null || CurrentSession.Data?.CurrentData == null)
-                throw new InvalidOperationException("No file loaded or current data not available.");
+            if (CurrentData == null)
+                return 0;
 
-            return CurrentSession.Data.CurrentData.Columns.Count;
+            return CurrentData.Columns.Count;
         }
 
         public void SortData(string columnName, bool ascending)
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            _dataService.SortData(CurrentSession, columnName, ascending);
+            _dataService.SortData(Session, columnName, ascending);
         }
 
         public void ApplyFormulaToColumn(string columnName, string formula)
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-
-            _dataService.ApplyFormulaToColumn(CurrentSession, columnName, formula);
+            _dataService.ApplyFormulaToColumn(Session, columnName, formula);
         }
 
         public void SetColumnDataType(string columnName, DataType dataType)
         {
-            if (CurrentSession == null)
-                throw new InvalidOperationException("No file loaded.");
-
             Type systemType = DataHelper.GetSystemType(dataType);
 
-            _dataService.SetColumnDataType(CurrentSession, columnName, systemType);
+            _dataService.SetColumnDataType(Session, columnName, systemType);
         }
     }
 }

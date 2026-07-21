@@ -1,16 +1,11 @@
-﻿using DocumentFormat.OpenXml.InkML;
-using FileMappingEngine.Lib;
-using FileMappingEngine.Lib.Database.Entities;
-using FileMappingEngine.Lib.Database.Repositories;
+﻿using FileMappingEngine.Lib;
 using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Models;
-using FileMappingEngine.Lib.Sessions;
 using FileMappingEngine.Resources;
 using FileMappingEngine.Views;
 using Microsoft.Win32;
 using System.ComponentModel;
 using System.Data;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -24,9 +19,6 @@ namespace FileMappingEngine
     /// </summary>
     public partial class MainWindow : Window
     {
-        // TODO:
-        // - Review reset functionality and consider resetting the header row to default
-
         private readonly AppManager appManager;
         private readonly UiHelper helper = new();
         private readonly HashSet<string> _selectedColumns = [];
@@ -121,26 +113,28 @@ namespace FileMappingEngine
 
             helper.UpdateSelectedColumnHeaders(dataGrid, _selectedColumns);
 
-            if (appManager.Session?.Data?.SortedColumn != null)
-            {
-                RestoreSort();
-            }
+            SyncSort();
         }
-        private void RestoreSort()
+        private void SyncSort()
         {
-            if (appManager.Session?.Data?.SortedColumn == null)
-                return;
+            dataGrid.Items.SortDescriptions.Clear();
 
             foreach (var column in dataGrid.Columns)
             {
-                if (column.Header?.ToString() ==
-                    appManager.Session.Data.SortedColumn)
-                {
-                    column.SortDirection =
-                        appManager.Session.Data.SortAscending == true
-                        ? ListSortDirection.Ascending
-                        : ListSortDirection.Descending;
-                }
+                column.SortDirection = null;
+            }
+
+            if (appManager.SortColumn == null)
+                return;
+
+            var columnToSort = dataGrid.Columns
+                .FirstOrDefault(c => c.Header?.ToString() == appManager.SortColumn);
+
+            if (columnToSort != null)
+            {
+                columnToSort.SortDirection = appManager.SortAscending == true
+                    ? ListSortDirection.Ascending
+                    : ListSortDirection.Descending;
             }
         }
 
@@ -401,31 +395,22 @@ namespace FileMappingEngine
         {
             ContextMenu menu = new();
 
-            // Remove Column
             MenuItem removeItem = new() { Header = UiMessages.ColumnRemove, Tag = column };
             removeItem.Click += RemoveColumnMenuItem_Click;
             menu.Items.Add(removeItem);
 
-            // Add Column right
             MenuItem addItemRight = new() { Header = UiMessages.ColumnAddAfter, Tag = column };
             addItemRight.Click += AddColumnMenuItem_Click;
             menu.Items.Add(addItemRight);
 
-            // Add Column left
             MenuItem addItemLeft = new() { Header = UiMessages.ColumnAddBefore, Tag = column };
             addItemLeft.Click += AddColumnMenuItem_Click;
             menu.Items.Add(addItemLeft);
 
-            //MenuItem hideItem = new MenuItem { Header = "Hide Column", Tag = column };
-            //hideItem.Click += HideColumnMenuItem_Click;
-            //menu.Items.Add(hideItem);
-
-            // Rename Column
             MenuItem renameCol = new() { Header = UiMessages.ColumnRename, Tag = column };
             renameCol.Click += RenameColumnMenuItem_Click;
             menu.Items.Add(renameCol);
 
-            // Set Data Type
             MenuItem setFormat = new() { Header = UiMessages.ColumnSetDt, Tag = column };
             setFormat.Click += SetDataTypeMenuItem_Click;
             menu.Items.Add(setFormat);
@@ -446,7 +431,6 @@ namespace FileMappingEngine
         {
             ContextMenu menu = new();
 
-            // Remove Column
             MenuItem removeItem = new () { Header = UiMessages.ColumnRemovePlural, Tag = columns };
             removeItem.Click += RemoveColumnMenuItems_Click;
             menu.Items.Add(removeItem);

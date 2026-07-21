@@ -1,5 +1,6 @@
 ﻿using ClosedXML.Attributes;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Spreadsheet;
 using FileMappingEngine.Lib.Models;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,7 @@ namespace FileMappingEngine.Lib.Helpers
         {
             DataTable rawData = new();
             List<ColumnReference> columns = [];
+            List<CellReference> cellMetadata = [];
 
             using XLWorkbook workbook = new(filePath);
             IXLWorksheet worksheet = workbook.Worksheet(1);
@@ -48,6 +50,16 @@ namespace FileMappingEngine.Lib.Helpers
                     var cell = row.Cell(c);
 
                     dr[c - 1] = GetCellValue(row.Cell(c));
+                    if (cell.HasHyperlink)
+                    {
+                        var hyperlink = cell.GetHyperlink();
+                        cellMetadata.Add(new CellReference
+                        {
+                            RowIndex = row.RowNumber() - 1,
+                            ColumnId = columns[c - 1].Id,
+                            Hyperlink = hyperlink?.ExternalAddress?.ToString() ?? hyperlink?.InternalAddress?.ToString()
+                        });
+                    }
                 }
 
                 rawData.Rows.Add(dr);
@@ -56,7 +68,8 @@ namespace FileMappingEngine.Lib.Helpers
             return new RawExcelData
             {
                 Data = rawData,
-                Columns = columns
+                Columns = columns,
+                Cells = cellMetadata
             };
         }
 
@@ -84,13 +97,13 @@ namespace FileMappingEngine.Lib.Helpers
                         c + 1,
                         usedNames);
 
+
                 dataTable.Columns.Add(colName, dataState.RawData.Data.Columns[c].DataType);
                 fileDefinition?.Columns?.Add(new ColumnData
                 {
                     Name = colName
                 });
             }
-
 
             for (int r = headerIndex + 1; r < dataState?.RawData?.Data?.Rows.Count; r++)
             {
@@ -157,6 +170,8 @@ namespace FileMappingEngine.Lib.Helpers
                     DataHelper.SetCellValue(ws.Cell(currentRow, c + 1), dr[c], dt.Columns[c].DataType);
                 currentRow++;
             }
+
+            ws.Columns().AdjustToContents();
 
             workbook.SaveAs(filePath);
         }
