@@ -90,7 +90,8 @@ namespace FileMappingEngine.Lib
 
         public void SaveFile(string filePath)
         {
-            _fileService.SaveFile(Session, filePath);
+            //_fileService.SaveFile(Session, filePath);
+            _fileService.SaveFile(Session.Data.Workbook, filePath);
         }
 
         public void RemoveColumn(string columnName)

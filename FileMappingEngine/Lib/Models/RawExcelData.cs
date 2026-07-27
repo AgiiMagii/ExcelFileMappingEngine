@@ -1,4 +1,5 @@
 ﻿
+using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Drawing.Diagrams;
 using System.Data;
 
@@ -6,6 +7,8 @@ namespace FileMappingEngine.Lib.Models
 {
     public class RawExcelData
     {
+        public IXLWorkbook? RawBook {  get; set; }
+
         public DataTable? Data { get; set; }
 
         public List<ColumnReference> Columns { get; set; } = new();

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ClosedXML.Excel;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Text;
@@ -13,6 +14,8 @@ namespace FileMappingEngine.Lib.Models
         public bool IsMappingApplied { get; set; } = false;
 
         public RawExcelData? RawData { get; set; }
+
+        public IXLWorkbook? Workbook { get; set; }
 
         public DataTable? CurrentData { get; set; }
 

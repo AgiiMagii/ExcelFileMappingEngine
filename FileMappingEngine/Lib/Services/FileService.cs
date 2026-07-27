@@ -1,4 +1,5 @@
-﻿using FileMappingEngine.Lib.Database.Entities;
+﻿using ClosedXML.Excel;
+using FileMappingEngine.Lib.Database.Entities;
 using FileMappingEngine.Lib.Database.Repositories;
 using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Models;
@@ -79,7 +80,11 @@ namespace FileMappingEngine.Lib.Services
             ArgumentNullException.ThrowIfNull(session);
             if (session.Data?.CurrentData == null)
                 throw new InvalidOperationException("No data to save.");
-            ExcelHelper.SaveFile(path, session.Data.CurrentData, ignoredRows?? []);
+            ExcelHelper.SaveFile(path, session.Data.CurrentData, ignoredRows ?? []);
+        }
+        public void SaveFile(IXLWorkbook workbook, string path)
+        {
+            ExcelHelper.SaveExcelFile(path, workbook);
         }
     }
 }

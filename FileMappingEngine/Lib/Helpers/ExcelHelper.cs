@@ -16,12 +16,14 @@ namespace FileMappingEngine.Lib.Helpers
     {
         public static RawExcelData LoadRawData(string filePath)
         {
+            RawExcelData rawExcelData = new RawExcelData();
             DataTable rawData = new();
             List<ColumnReference> columns = [];
             List<CellReference> cellMetadata = [];
 
-            using XLWorkbook workbook = new(filePath);
+            XLWorkbook workbook = new(filePath);
             IXLWorksheet worksheet = workbook.Worksheet(1);
+            rawExcelData.RawBook = workbook;
 
             int maxCol = worksheet.LastCellUsed().Address.ColumnNumber;
             var allRows = worksheet.RowsUsed().ToList();
@@ -65,12 +67,11 @@ namespace FileMappingEngine.Lib.Helpers
                 rawData.Rows.Add(dr);
             }
 
-            return new RawExcelData
-            {
-                Data = rawData,
-                Columns = columns,
-                Cells = cellMetadata
-            };
+            rawExcelData.Data = rawData;
+            rawExcelData.Columns = columns;
+            rawExcelData.Cells = cellMetadata;
+
+            return rawExcelData;
         }
 
         public static void BuildCurrentData(DataState dataState)
@@ -82,6 +83,8 @@ namespace FileMappingEngine.Lib.Helpers
 
             if (headerIndex >= dataState?.RawData?.Data?.Rows.Count)
                 throw new ArgumentException("Invalid header row.");
+
+            IXLWorkbook? workbook = dataState?.RawData?.RawBook;
 
             DataRow? headerRow = dataState?.RawData?.Data?.Rows[headerIndex];
 
@@ -118,6 +121,7 @@ namespace FileMappingEngine.Lib.Helpers
             }
             dataState?.CurrentData = dataTable;
             dataState?.FileDefinition = fileDefinition;
+            dataState?.Workbook = workbook;
         }
         private static string GetSafeColumnName(string rawName, int index, HashSet<string> usedNames)
         {
@@ -176,6 +180,11 @@ namespace FileMappingEngine.Lib.Helpers
             workbook.SaveAs(filePath);
         }
 
+        public static void SaveExcelFile(string filePath, IXLWorkbook workbook)
+        {
+            workbook.SaveAs(filePath);
+        }
+
         private static object GetCellValue(IXLCell cell)
         {
             if (cell.IsEmpty())
@@ -192,155 +201,18 @@ namespace FileMappingEngine.Lib.Helpers
                 _ => DBNull.Value
             };
         }
-        private static ColumnFormat GetFormat(IXLColumn? column, IXLCell? cell)
+        
+        public static IXLAddress GetColumnAddressByHeaderRow(IXLWorksheet worksheet, int headerRowIndex, string columnName)
         {
-            if (column == null && cell == null)
-                return ColumnFormat.General;
-
-            int id = column?.Style.NumberFormat.NumberFormatId ?? cell?.Style.NumberFormat.NumberFormatId ?? 0;
-            string format = column?.Style.NumberFormat.Format ?? cell?.Style.NumberFormat.Format ?? "";
-
-            switch (id)
+            var headerRow = worksheet.Row(headerRowIndex);
+            foreach (var cell in headerRow.CellsUsed())
             {
-                case 0:
-                    return ColumnFormat.General;
-
-                case 1:
-                case 2:
-                case 3:
-                case 4:
-                    return ColumnFormat.Number;
-
-                case 9:
-                case 10:
-                    return ColumnFormat.Percentage;
-
-                case 11:
-                case 48:
-                    return ColumnFormat.Scientific;
-
-                case 12:
-                case 13:
-                    return ColumnFormat.Fraction;
-
-                case 14:
-                    return ColumnFormat.DateShort;
-
-                case 15:
-                case 16:
-                case 17:
-                    return ColumnFormat.DateLong;
-
-                case 18:
-                case 19:
-                case 20:
-                case 21:
-                case 45:
-                case 46:
-                case 47:
-                    return ColumnFormat.Time;
-
-                case 22:
-                    return ColumnFormat.DateTime;
-
-                case 37:
-                case 38:
-                case 39:
-                case 40:
-                    return ColumnFormat.Accounting;
-
-                case 49:
-                    return ColumnFormat.Text;
-            }
-
-            // Pielāgoti (Custom) formāti
-            if (string.IsNullOrWhiteSpace(format))
-                return ColumnFormat.General;
-
-            format = format.ToUpperInvariant();
-
-            if (format.Contains('%'))
-                return ColumnFormat.Percentage;
-
-            if (format.Contains('€') ||
-                format.Contains('$') ||
-                format.Contains('£') ||
-                format.Contains('¥'))
-                return ColumnFormat.Currency;
-
-            if (format.Contains("E+"))
-                return ColumnFormat.Scientific;
-
-            if (format.Contains("?/?"))
-                return ColumnFormat.Fraction;
-
-            if (format.Contains('@'))
-                return ColumnFormat.Text;
-
-            if (format.Contains("DD") ||
-                format.Contains("MM") ||
-                format.Contains("YY") ||
-                format.Contains("HH") ||
-                format.Contains("SS"))
-            {
-                if (format.Contains("HH"))
-                    return ColumnFormat.DateTime;
-
-                return ColumnFormat.Date;
-            }
-
-            return ColumnFormat.Custom;
-        }
-        private static Type GetColumnDataType(IXLColumn column)
-        {
-            bool hasNumber = false;
-            bool hasDate = false;
-            bool hasText = false;
-            bool hasBool = false;
-
-
-            foreach (var cell in column.CellsUsed())
-            {
-                if (cell.IsEmpty())
-                    continue;
-
-
-                switch (cell.DataType)
+                if (cell.GetString().Trim().Equals(columnName, StringComparison.OrdinalIgnoreCase))
                 {
-                    case XLDataType.Number:
-                        hasNumber = true;
-                        break;
-
-                    case XLDataType.DateTime:
-                        hasDate = true;
-                        break;
-
-                    case XLDataType.Boolean:
-                        hasBool = true;
-                        break;
-
-                    case XLDataType.Text:
-                        hasText = true;
-                        break;
+                    return cell.Address;
                 }
             }
-
-
-            // ja ir teksts, prioritāte tekstam
-            if (hasText)
-                return typeof(string);
-
-            if (hasDate)
-                return typeof(DateTime);
-
-            if (hasNumber)
-                return typeof(double);
-
-            if (hasBool)
-                return typeof(bool);
-
-
-            return typeof(string);
+            throw new ArgumentException($"Column '{columnName}' not found in header row {headerRowIndex}.");
         }
     }
 }
