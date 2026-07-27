@@ -101,10 +101,13 @@ namespace FileMappingEngine.Lib.Helpers
                         usedNames);
 
 
+
                 dataTable.Columns.Add(colName, dataState.RawData.Data.Columns[c].DataType);
                 fileDefinition?.Columns?.Add(new ColumnData
                 {
-                    Name = colName
+                    Name = colName,
+                    OriginalName = rawName,
+
                 });
             }
 
@@ -128,21 +131,21 @@ namespace FileMappingEngine.Lib.Helpers
             if (string.IsNullOrWhiteSpace(rawName))
                 rawName = "Column" + index;
 
-            string safeName = Regex.Replace(rawName, @"[^\w]", "_");
+            //string safeName = Regex.Replace(rawName, @"[^\w]", "_");
 
-            string baseName = safeName;
+            string baseName = rawName;
             int suffix = 1;
 
-            while (usedNames.Contains(safeName))
+            while (usedNames.Contains(rawName))
             {
-                safeName = $"{baseName}_{suffix}";
+                rawName = $"{baseName}_{suffix}";
                 suffix++;
             }
 
-            usedNames.Add(safeName);
+            usedNames.Add(rawName);
 
-            return safeName;
-            
+            return rawName;
+
         }
 
         public static void SaveFile(string filePath, DataTable dt, List<List<string>> ignoredRows = null)
@@ -201,7 +204,7 @@ namespace FileMappingEngine.Lib.Helpers
                 _ => DBNull.Value
             };
         }
-        
+
         public static IXLAddress GetColumnAddressByHeaderRow(IXLWorksheet worksheet, int headerRowIndex, string columnName)
         {
             var headerRow = worksheet.Row(headerRowIndex);

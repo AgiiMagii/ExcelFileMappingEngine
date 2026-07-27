@@ -7,5 +7,6 @@ namespace FileMappingEngine.Lib.Models
     public class ColumnData
     {
         public string? Name { get; set; }
+        public string? OriginalName { get; set; }
     }
 }

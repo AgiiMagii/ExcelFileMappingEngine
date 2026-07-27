@@ -1,4 +1,5 @@
-﻿using DocumentFormat.OpenXml.Drawing.Diagrams;
+﻿using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Drawing.Diagrams;
 using DocumentFormat.OpenXml.Wordprocessing;
 using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Models;
@@ -63,12 +64,12 @@ namespace FileMappingEngine.Lib.Services
             if (dataState.CurrentData.Columns.Contains(columnName))
             {
                 dataState.CurrentData.Columns.Remove(columnName);
+
                 var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
                 if (columnAddress != null)
                 {
                     dataState.Workbook.Worksheet(1).Column(columnAddress.ColumnNumber).Delete();
                 }
-
             }
         }
         public void RemoveColumn(DataSession session, string columnName)
@@ -95,6 +96,11 @@ namespace FileMappingEngine.Lib.Services
                 if (dataState.CurrentData.Columns.Contains(columnName))
                 {
                     dataState.CurrentData.Columns.Remove(columnName);
+                }
+                var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
+                if (columnAddress != null)
+                {
+                    dataState.Workbook.Worksheet(1).Column(columnAddress.ColumnNumber).Delete();
                 }
             }
         }
