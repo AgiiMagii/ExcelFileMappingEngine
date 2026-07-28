@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using static FileMappingEngine.Lib.Models.Enums;
@@ -21,9 +22,12 @@ namespace FileMappingEngine.Lib.Helpers
             List<ColumnReference> columns = [];
             List<CellReference> cellMetadata = [];
 
-            XLWorkbook workbook = new(filePath);
+            byte[] originalBytes = File.ReadAllBytes(filePath);
+            rawExcelData.OriginalBytes = originalBytes;
+
+            using var ms = new MemoryStream(originalBytes);
+            using XLWorkbook workbook = new(ms);
             IXLWorksheet worksheet = workbook.Worksheet(1);
-            rawExcelData.RawBook = workbook;
 
             int maxCol = worksheet.LastCellUsed().Address.ColumnNumber;
             var allRows = worksheet.RowsUsed().ToList();
@@ -84,7 +88,14 @@ namespace FileMappingEngine.Lib.Helpers
             if (headerIndex >= dataState?.RawData?.Data?.Rows.Count)
                 throw new ArgumentException("Invalid header row.");
 
-            IXLWorkbook? workbook = dataState?.RawData?.RawBook;
+            dataState.Workbook?.Dispose();
+
+            IXLWorkbook? workbook = null;
+            if (dataState?.RawData?.OriginalBytes != null)
+            {
+                var ms = new MemoryStream(dataState.RawData.OriginalBytes);
+                workbook = new XLWorkbook(ms);
+            }
 
             DataRow? headerRow = dataState?.RawData?.Data?.Rows[headerIndex];
 

@@ -96,11 +96,11 @@ namespace FileMappingEngine.Lib.Services
                 if (dataState.CurrentData.Columns.Contains(columnName))
                 {
                     dataState.CurrentData.Columns.Remove(columnName);
-                }
-                var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
-                if (columnAddress != null)
-                {
-                    dataState.Workbook.Worksheet(1).Column(columnAddress.ColumnNumber).Delete();
+                    var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
+                    if (columnAddress != null)
+                    {
+                        dataState.Workbook.Worksheet(1).Column(columnAddress.ColumnNumber).Delete();
+                    }
                 }
             }
         }
@@ -139,6 +139,18 @@ namespace FileMappingEngine.Lib.Services
 
             dataState.CurrentData.Columns.Add(newColumnName, dataType ?? typeof(object));
             dataState.CurrentData.Columns[newColumnName]?.SetOrdinal(index);
+
+            var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, anchorId);
+            if (columnAddress != null)
+            {
+                int excelColumnIndex = columnAddress.ColumnNumber;
+                if (direction == ColumnDirection.Right)
+                {
+                    excelColumnIndex++;
+                }
+                dataState.Workbook.Worksheet(1).Column(excelColumnIndex).InsertColumnsBefore(1);
+                dataState.Workbook.Worksheet(1).Cell(dataState.HeaderRowIndex, excelColumnIndex).Value = newColumnName;
+            }
 
             return newColumnName;
         }
@@ -196,6 +208,11 @@ namespace FileMappingEngine.Lib.Services
                 throw new ArgumentException($"Column name '{newName}' is already taken.");
 
             dataState.CurrentData.Columns[oldName]?.ColumnName = newName;
+            var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, oldName);
+            if (columnAddress != null)
+            {
+                dataState.Workbook.Worksheet(1).Cell(dataState.HeaderRowIndex, columnAddress.ColumnNumber).Value = newName;
+            }
         }
 
         public void MergeColumns(DataSession session, ColumnReference first, ColumnReference second, string separator, string? resultColumnName)

@@ -7,7 +7,7 @@ namespace FileMappingEngine.Lib.Models
 {
     public class RawExcelData
     {
-        public IXLWorkbook? RawBook {  get; set; }
+        public byte[]? OriginalBytes { get; set; }
 
         public DataTable? Data { get; set; }
 
