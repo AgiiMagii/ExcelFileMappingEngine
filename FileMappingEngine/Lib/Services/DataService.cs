@@ -141,6 +141,8 @@ namespace FileMappingEngine.Lib.Services
             dataState.CurrentData.Columns[newColumnName]?.SetOrdinal(index);
 
             var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, anchorId);
+            var columnFont = dataState.Workbook.Worksheet(1).Cell(dataState.HeaderRowIndex, columnAddress?.ColumnNumber ?? 1).Style.Font;
+            
             if (columnAddress != null)
             {
                 int excelColumnIndex = columnAddress.ColumnNumber;
@@ -150,6 +152,7 @@ namespace FileMappingEngine.Lib.Services
                 }
                 dataState.Workbook.Worksheet(1).Column(excelColumnIndex).InsertColumnsBefore(1);
                 dataState.Workbook.Worksheet(1).Cell(dataState.HeaderRowIndex, excelColumnIndex).Value = newColumnName;
+                dataState.Workbook.Worksheet(1).Cell(dataState.HeaderRowIndex, excelColumnIndex).Style.Font = columnFont;
             }
 
             return newColumnName;
@@ -225,28 +228,41 @@ namespace FileMappingEngine.Lib.Services
 
             SavePreviousState(session);
 
+            IXLAddress columnAddress1 = ExcelHelper.GetColumnAddressByHeaderRow(session.Data.Workbook!.Worksheet(1), session.Data.HeaderRowIndex, first.Name);
+            IXLAddress columnAddress2 = ExcelHelper.GetColumnAddressByHeaderRow(session.Data.Workbook!.Worksheet(1), session.Data.HeaderRowIndex, second.Name);
+
             string targetColumn =
                 string.IsNullOrWhiteSpace(resultColumnName)
                 ? first.Name
                 : resultColumnName;
-
-
-            if (targetColumn != first.Name)
-            {
-                AddColumnCore(session.Data, ColumnDirection.Right, first.Name, targetColumn);
-            }
-
 
             foreach (DataRow row in session.Data.CurrentData.Rows)
             {
                 string firstValue = row[first.Name]?.ToString() ?? "";
                 string secondValue = row[second.Name]?.ToString() ?? "";
 
-                row[targetColumn] =
+                row[first.Name] =
                     string.IsNullOrEmpty(secondValue)
                     ? firstValue
                     : $"{firstValue}{separator}{secondValue}";
             }
+
+            for (int row = session.Data.HeaderRowIndex + 1; row <= session.Data.Workbook.Worksheet(1).LastRowUsed()?.RowNumber(); row++)
+            {
+                string firstValue = session.Data.Workbook.Worksheet(1).Cell(row, columnAddress1?.ColumnNumber ?? 1).GetString();
+                string secondValue = session.Data.Workbook.Worksheet(1).Cell(row, columnAddress2?.ColumnNumber ?? 1).GetString();
+                string mergedValue = string.IsNullOrEmpty(secondValue)
+                    ? firstValue
+                    : $"{firstValue}{separator}{secondValue}";
+                session.Data.Workbook.Worksheet(1).Cell(row, columnAddress1?.ColumnNumber ?? 1).Value = mergedValue;
+            }
+
+            if (targetColumn != first.Name)
+            {
+                RenameColumnCore(session.Data, first.Name, targetColumn);
+            }
+            RemoveColumnCore(session.Data, second.Name);
+
             session.MappingSet.Steps.Add(new ActionStep
             {
                 ActionType = "MergeColumns",
@@ -259,13 +275,6 @@ namespace FileMappingEngine.Lib.Services
                     ["NewName"] = targetColumn
                 }
             });
-
-            if (targetColumn != first.Name)
-            {
-                RemoveColumnCore(session.Data, first.Name);
-            }
-
-            RemoveColumnCore(session.Data, second.Name);
         }
 
         public void SortData(DataSession session, string columnName, bool ascending)
