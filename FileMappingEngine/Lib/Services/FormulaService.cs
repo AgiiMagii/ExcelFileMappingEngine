@@ -1,4 +1,7 @@
-﻿using FileMappingEngine.Lib.Models;
+﻿using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Spreadsheet;
+using FileMappingEngine.Lib.Helpers;
+using FileMappingEngine.Lib.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -345,6 +348,27 @@ namespace FileMappingEngine.Lib.Services
             int decimals = (int)Evaluate(node.Arguments[1], row);
 
             return Math.Round(value, decimals, MidpointRounding.AwayFromZero);
+        }
+        public static XLFormula ConvertToExcelFormula(string formula, DataState dataState)
+        {
+            var excelFormula = new XLFormula();
+            
+            string convertedFormula = Regex.Replace(formula, @"\[(.*?)\]", match =>
+            {
+                string columnName = match.Groups[1].Value;
+
+                var address = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
+
+                if (address == null)
+                    throw new ArgumentException(
+                        $"Column '{columnName}' not found.");
+
+                return $"${address.ColumnLetter}{{0}}";
+
+            });
+            
+            excelFormula.Value = convertedFormula;
+            return excelFormula;
         }
     }
 }

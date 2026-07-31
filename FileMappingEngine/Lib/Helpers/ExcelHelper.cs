@@ -1,5 +1,6 @@
 ﻿using ClosedXML.Attributes;
 using ClosedXML.Excel;
+using ClosedXML.Parser;
 using DocumentFormat.OpenXml.Spreadsheet;
 using FileMappingEngine.Lib.Models;
 using System;
@@ -228,6 +229,32 @@ namespace FileMappingEngine.Lib.Helpers
             }
             throw new ArgumentException($"Column '{columnName}' not found in header row {headerRowIndex}.");
         }
+
+        public static IXLRange GetDataRangeAfterHeader(IXLWorksheet worksheet, int headerRowIndex)
+        {
+            int firstDataRow = headerRowIndex + 1;
+            int lastRow = worksheet.LastRowUsed().RowNumber();
+            int lastColumn = worksheet.LastColumnUsed().ColumnNumber();
+
+            return worksheet.Range(
+                firstDataRow,
+                1,
+                lastRow,
+                lastColumn);
+        }
+
+        public static IXLRange GetDataRangeForColumn(IXLWorksheet worksheet, int headerRowIndex, IXLAddress columnAddress)
+        {
+            int firstDataRow = headerRowIndex + 1;
+            int lastRow = worksheet.LastRowUsed().RowNumber();
+
+            return worksheet.Range(
+                firstDataRow,
+                columnAddress.ColumnNumber,
+                lastRow,
+                columnAddress.ColumnNumber);
+        }
+
     }
 }
 

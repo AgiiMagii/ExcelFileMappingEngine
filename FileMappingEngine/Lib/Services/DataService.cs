@@ -1,5 +1,6 @@
 ﻿using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Drawing.Diagrams;
+using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
 using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Models;
@@ -302,6 +303,11 @@ namespace FileMappingEngine.Lib.Services
             view.Sort = $"{columnName} {direction}";
 
             dataState.CurrentData = view.ToTable();
+
+            var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
+            var range = ExcelHelper.GetDataRangeAfterHeader(dataState.Workbook.Worksheet(1), dataState.HeaderRowIndex);
+
+            range.Sort(columnAddress?.ColumnNumber ?? 1, ascending ? XLSortOrder.Ascending : XLSortOrder.Descending);
         }
 
         public void SetColumnDataType(DataSession session, string columnName, Type dataType)
@@ -330,55 +336,37 @@ namespace FileMappingEngine.Lib.Services
         }
         public void SetColumnDataTypeCore(DataState dataState, string columnName, Type dataType)
         {
-            if (dataState.CurrentData == null)
-                throw new InvalidOperationException("Current data not available.");
+            var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
+            var worksheet = dataState.Workbook.Worksheet(1);
 
-            if (!dataState.CurrentData.Columns.Contains(columnName))
-                throw new ArgumentException($"Column '{columnName}' does not exist.");
+            var columnCells = worksheet
+                .Column(columnAddress.ColumnNumber)
+                .CellsUsed()
+                .Where(c => c.Address.RowNumber > dataState.HeaderRowIndex);
 
-            DataColumn oldColumn = dataState.CurrentData.Columns[columnName]!;
-            int ordinal = oldColumn.Ordinal;
-
-            // Izveido jaunu kolonnu ar vajadzīgo datu tipu
-            DataColumn newColumn = new(columnName + "_tmp", dataType);
-
-            dataState.CurrentData.Columns.Add(newColumn);
-
-            // Pārkopē un konvertē datus
-            foreach (DataRow row in dataState.CurrentData.Rows)
+            foreach (var cell in columnCells)
             {
-                object value = row[oldColumn];
-
-                if (value == DBNull.Value)
+                if (dataType == typeof(int))
                 {
-                    row[newColumn] = DBNull.Value;
-                    continue;
+                    if (int.TryParse(cell.GetString(), out var value))
+                        cell.Value = value;
                 }
-
-                try
+                else if (dataType == typeof(double))
                 {
-                    row[newColumn] = Convert.ChangeType(value, dataType);
+                    if (double.TryParse(cell.GetString(), out var value))
+                        cell.Value = value;
                 }
-                catch (InvalidCastException)
+                else if (dataType == typeof(DateTime))
                 {
-                    row[newColumn] = DBNull.Value;
+                    if (DateTime.TryParse(cell.GetString(), out var value))
+                        cell.Value = value;
                 }
-                catch (FormatException)
+                else
                 {
-                    row[newColumn] = DBNull.Value;
+                    cell.Value = cell.GetString();
                 }
-                catch (OverflowException)
-                {
-                    row[newColumn] = DBNull.Value;
-                }
+                cell.Style.NumberFormat.Format = "General";
             }
-
-            // Noņem veco kolonnu
-            dataState.CurrentData.Columns.Remove(oldColumn);
-
-            // Pārsauc jauno kolonnu un atgriež sākotnējā vietā
-            newColumn.ColumnName = columnName;
-            newColumn.SetOrdinal(ordinal);
         }
 
         private void SavePreviousState(DataSession session)
@@ -503,18 +491,29 @@ namespace FileMappingEngine.Lib.Services
             var formulaTree = FormulaService.Parse(tokens);
 
             ApplyFormula(
-                dataState.CurrentData,
+                dataState,
                 columnName,
                 formulaTree);
 
+            var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
+            var excelFormula = FormulaService.ConvertToExcelFormula(formula, dataState);
+            var dataRange = ExcelHelper.GetDataRangeForColumn(dataState.Workbook.Worksheet(1), dataState.HeaderRowIndex, columnAddress);
+            var rows = dataRange.Columns().FirstOrDefault()?.Cells() ?? Enumerable.Empty<IXLCell>();
+            foreach ( var cell in rows )
+            {
+                formula = string.Format(excelFormula.Value, cell.Address.RowNumber);
+                cell.FormulaA1 = formula;
+            }
         }
-        private void ApplyFormula(DataTable dataTable, string targetColumn, FormulaNode formulaTree)
+        private void ApplyFormula(DataState dataState, string targetColumn, FormulaNode formulaTree)
         {
-            foreach (DataRow row in dataTable.Rows)
+            foreach (DataRow row in dataState.CurrentData.Rows)
             {
                 decimal result = FormulaService.Evaluate(formulaTree, row);
 
                 row[targetColumn] = result;
+                dataState.Workbook!.Worksheet(1).Cell(row.Table.Rows.IndexOf(row) + dataState.HeaderRowIndex + 1, ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook.Worksheet(1), dataState.HeaderRowIndex, targetColumn)?.ColumnNumber ?? 1).Value = result;
+                SetColumnDataTypeCore(dataState, targetColumn, typeof(double));
             }
         }
 
