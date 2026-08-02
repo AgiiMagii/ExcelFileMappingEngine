@@ -355,26 +355,14 @@ namespace FileMappingEngine.Lib.Services
 
             foreach (var cell in columnCells)
             {
-                if (dataType == typeof(int))
+                if (dataType == typeof(string))
                 {
-                    if (int.TryParse(cell.GetString(), out var value))
-                        cell.Value = value;
-                }
-                else if (dataType == typeof(double))
-                {
-                    if (double.TryParse(cell.GetString(), out var value))
-                        cell.Value = value;
-                }
-                else if (dataType == typeof(DateTime))
-                {
-                    if (DateTime.TryParse(cell.GetString(), out var value))
-                        cell.Value = value;
+                    cell.Style.NumberFormat.Format = "@";
                 }
                 else
                 {
-                    cell.Value = cell.GetString();
+                    cell.Style.NumberFormat.Format = "General";
                 }
-                cell.Style.NumberFormat.Format = "General";
             }
         }
 
