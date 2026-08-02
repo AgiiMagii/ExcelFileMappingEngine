@@ -315,7 +315,7 @@ namespace FileMappingEngine
                 appManager.ClearCurrentMapping();
                 ChangeUIStateForMappingApplied();
             }
-
+            _selectedColumns.Clear();
             ReloadGrid();
         }
         private void CancelSaveMapping_Click(object sender, RoutedEventArgs e)

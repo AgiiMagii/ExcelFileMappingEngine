@@ -112,6 +112,7 @@ namespace FileMappingEngine.Lib.Helpers
                         c + 1,
                         usedNames);
 
+                workbook?.Worksheet(1)?.Cell(headerIndex + 1, c + 1).SetValue(colName);
 
 
                 dataTable.Columns.Add(colName, dataState.RawData.Data.Columns[c].DataType);

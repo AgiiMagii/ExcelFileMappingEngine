@@ -36,11 +36,9 @@ namespace FileMappingEngine.Lib.Services
 
             formula = formula.TrimStart('=');
 
-            formula = NormalizeDecimals(formula);
-
             var matches = Regex.Matches(
                 formula,
-                @"\[[^\]]+\]|[+\-*/()]|[,;]|\d+(?:\.\d+)?|[a-zA-Z_]+"
+                @"\[[^\]]+\]|[+\-*/()]|,|\d+(?:\.\d+)?|[a-zA-Z_]+"
             );
 
             foreach (Match match in matches)
@@ -55,8 +53,7 @@ namespace FileMappingEngine.Lib.Services
                         Value = value
                     });
                 }
-
-                else if (decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal number))
+                else if (decimal.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out decimal number))
                 {
                     tokens.Add(new FormulaToken
                     {
@@ -64,7 +61,6 @@ namespace FileMappingEngine.Lib.Services
                         Value = number.ToString(CultureInfo.InvariantCulture)
                     });
                 }
-
                 else if (value is "+" or "-" or "*" or "/")
                 {
                     tokens.Add(new FormulaToken
@@ -73,7 +69,6 @@ namespace FileMappingEngine.Lib.Services
                         Value = value
                     });
                 }
-
                 else if (value == "(")
                 {
                     tokens.Add(new FormulaToken
@@ -90,16 +85,14 @@ namespace FileMappingEngine.Lib.Services
                         Value = value
                     });
                 }
-
-                else if (value == "," || value == ";")
+                else if (value == ",")
                 {
                     tokens.Add(new FormulaToken
                     {
                         Type = TokenType.Comma,
-                        Value = value
+                        Value = ","
                     });
                 }
-
                 else
                 {
                     tokens.Add(new FormulaToken
@@ -111,11 +104,6 @@ namespace FileMappingEngine.Lib.Services
             }
 
             return tokens;
-        }
-        private static string NormalizeDecimals(string formula)
-        {
-            // pārvērš 1,54 → 1.54 (iekšējais formāts vienmēr dot)
-            return Regex.Replace(formula, @"(\d),(\d)", "$1.$2");
         }
         public static FormulaNode Parse(List<FormulaToken> tokens)
         {
@@ -240,13 +228,13 @@ namespace FileMappingEngine.Lib.Services
         {
             FormulaToken functionToken = state.Tokens[state.Position];
 
-            state.Position++; // izlaižam funkcijas nosaukumu
+            state.Position++;
 
 
             if (!Current(state, "("))
                 throw new Exception("Expected '(' after function");
 
-            state.Position++; // izlaižam '('
+            state.Position++;
 
             var function = new FormulaNode
             {
@@ -268,7 +256,7 @@ namespace FileMappingEngine.Lib.Services
 
                 if (Current(state, ",") || Current(state, ";"))
                 {
-                    state.Position++; // izlaižam komatu
+                    state.Position++;
                 }
                 else
                 {
@@ -279,7 +267,7 @@ namespace FileMappingEngine.Lib.Services
             if (!Current(state, ")"))
                 throw new Exception("Missing ')'");
 
-            state.Position++; // izlaižam ')'
+            state.Position++;
 
             return function;
         }
@@ -363,7 +351,7 @@ namespace FileMappingEngine.Lib.Services
                     throw new ArgumentException(
                         $"Column '{columnName}' not found.");
 
-                return $"${address.ColumnLetter}{{0}}";
+                return $"{address.ColumnLetter}{{0}}";
 
             });
             

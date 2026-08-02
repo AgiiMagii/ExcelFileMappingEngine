@@ -92,17 +92,26 @@ namespace FileMappingEngine.Lib.Services
         {
             if (dataState.CurrentData == null)
                 throw new InvalidOperationException("No data loaded.");
-            foreach (var columnName in columnNames)
+            try
             {
-                if (dataState.CurrentData.Columns.Contains(columnName))
+                foreach (var columnName in columnNames)
                 {
-                    dataState.CurrentData.Columns.Remove(columnName);
-                    var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
-                    if (columnAddress != null)
+
+                    if (dataState.CurrentData.Columns.Contains(columnName))
                     {
-                        dataState.Workbook.Worksheet(1).Column(columnAddress.ColumnNumber).Delete();
+                        var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
+                        
+                        if (columnAddress != null)
+                        {
+                            dataState.Workbook.Worksheet(1).Column(columnAddress.ColumnNumber).Delete();
+                        }
+                        dataState.CurrentData.Columns.Remove(columnName);
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Error removing columns: " + ex.Message, ex);
             }
         }
         public void RemoveColumns(DataSession session, IEnumerable<string> columnNames)
