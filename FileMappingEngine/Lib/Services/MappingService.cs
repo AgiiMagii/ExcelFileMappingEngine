@@ -2,6 +2,7 @@
 using FileMappingEngine.Lib.Database.Entities;
 using FileMappingEngine.Lib.Database.Repositories;
 using FileMappingEngine.Lib.Helpers;
+using FileMappingEngine.Lib.Interfaces;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Sessions;
 using System;
@@ -19,11 +20,13 @@ namespace FileMappingEngine.Lib.Services
     {
         private readonly MappingRepository mappingRepository;
         private readonly FileRepository fileRepository;
+        private readonly IMappingActionExecutor mappingActionExecutor;
 
-        public MappingService(MappingRepository mappingRepository, FileRepository fileRepository)
+        public MappingService(MappingRepository mappingRepository, FileRepository fileRepository, IMappingActionExecutor mappingActionExecutor)
         {
             this.mappingRepository = mappingRepository;
             this.fileRepository = fileRepository;
+            this.mappingActionExecutor = mappingActionExecutor;
         }
         public async Task SaveMappingSet(DataSession session, string fileDefName, string mappingName)
         {
@@ -133,7 +136,7 @@ namespace FileMappingEngine.Lib.Services
                     case "DeleteColumn":
                         if (step.ColumnId == null)
                             throw new InvalidOperationException("Column ID missing for DeleteColumn action.");
-                        dataService.RemoveColumnCore(session.Data, step.ColumnId);
+                        mappingActionExecutor.RemoveColumn(session.Data, step.ColumnId);
                         break;
                     case "DeleteColumns":
                         if (step.Parameters == null)
@@ -159,7 +162,7 @@ namespace FileMappingEngine.Lib.Services
                         if (columnIds == null)
                             throw new InvalidOperationException("Invalid column IDs format.");
 
-                        dataService.RemoveColumnsCore(session.Data, columnIds);
+                        mappingActionExecutor.RemoveColumns(session.Data, columnIds);
                         break;
                     case "AddColumn":
                         if (step.Parameters == null)
@@ -169,7 +172,7 @@ namespace FileMappingEngine.Lib.Services
                         string? givenName = step.Parameters.TryGetValue("NewName", out object? value) ? value.ToString() : null;
                         Type? type = step.Parameters.TryGetValue("DataType", out object? typeValue) ? Type.GetType(typeValue.ToString() ?? "") : null;
 
-                        dataService.AddColumnCore(session.Data, direction, anchorId, givenName, type);
+                        mappingActionExecutor.AddColumn(session.Data, direction, anchorId, givenName/*, type*/);
                         break;
                     case "RenameColumn":
                         if (step.Parameters == null)
@@ -177,7 +180,7 @@ namespace FileMappingEngine.Lib.Services
                         if (step.ColumnId == null)
                             throw new InvalidOperationException("Column ID missing for RenameColumn action.");
                         string newName = step.Parameters["NewName"].ToString() ?? throw new InvalidOperationException("New name missing.");
-                        dataService.RenameColumnCore(session.Data, step.ColumnId, newName);
+                        mappingActionExecutor.RenameColumn(session.Data, step.ColumnId, newName);
                         break;
                     case "MergeColumns":
                         if (step.Parameters == null)
@@ -186,7 +189,7 @@ namespace FileMappingEngine.Lib.Services
                         string secondColumnName = step.Parameters["SecondColumnId"].ToString() ?? throw new InvalidOperationException("Second column name missing.");
                         string separator = step.Parameters["Separator"].ToString() ?? throw new InvalidOperationException("Separator missing.");
                         string? newColumnName = step.Parameters.TryGetValue("NewName", out object? newNameObj) ? newNameObj.ToString() : step.ColumnId;
-                        dataService.MergeColumns(session, new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, newColumnName);
+                        mappingActionExecutor.MergeColumns(session, new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, newColumnName);
                         break;
                     case "Sort":
                         if (step.Parameters == null)
@@ -194,7 +197,7 @@ namespace FileMappingEngine.Lib.Services
                         if (step.ColumnId == null)
                             throw new InvalidOperationException("Column ID missing for Sort action.");
                         bool ascending = ((JsonElement)step.Parameters["Ascending"]).GetBoolean();
-                        dataService.SortDataCore(session.Data, step.ColumnId, ascending);
+                        mappingActionExecutor.SortData(session.Data, step.ColumnId, ascending);
                         break;
                     case "Formula":
                         if (step.Parameters == null)
@@ -202,7 +205,7 @@ namespace FileMappingEngine.Lib.Services
                         if (step.ColumnId == null)
                             throw new InvalidOperationException("Column ID missing for Formula action.");
                         string formula = step.Parameters["Formula"].ToString() ?? throw new InvalidOperationException("Formula missing.");
-                        dataService.ApplyFormulaToColumnCore(session.Data, step.ColumnId, formula);
+                        mappingActionExecutor.ApplyFormulaToColumn(session.Data, step.ColumnId, formula);
                         break;
                     case "SetColumnDataType":
                         if (step.Parameters == null)

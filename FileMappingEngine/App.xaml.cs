@@ -8,6 +8,7 @@ using System.Data;
 using System.Windows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
+using FileMappingEngine.Lib.Interfaces;
 
 namespace FileMappingEngine
 {
@@ -46,6 +47,7 @@ namespace FileMappingEngine
             services.AddSingleton<MappingRepository>();
             services.AddSingleton<FileRepository>();
             services.AddSingleton<AppManager>();
+            services.AddSingleton<IMappingActionExecutor, DataTableActionExecutor>();
             services.AddSingleton(sp =>
             {
                 string connectionString =
