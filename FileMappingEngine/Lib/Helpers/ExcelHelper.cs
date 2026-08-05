@@ -82,7 +82,8 @@ namespace FileMappingEngine.Lib.Helpers
         public static void BuildCurrentData(DataState dataState)
         {
             DataTable dataTable = new();
-            FileDefinition fileDefinition = new FileDefinition();
+            FileDefinition fileDefinition = dataState?.FileDefinition ?? new FileDefinition();
+            fileDefinition.Columns = new List<ColumnData>();
 
             int headerIndex = dataState.HeaderRowIndex - 1;
 
