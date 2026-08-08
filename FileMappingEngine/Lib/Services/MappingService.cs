@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http.Json;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
@@ -20,13 +21,13 @@ namespace FileMappingEngine.Lib.Services
     {
         private readonly MappingRepository mappingRepository;
         private readonly FileRepository fileRepository;
-        private readonly IMappingActionExecutor mappingActionExecutor;
+        
 
-        public MappingService(MappingRepository mappingRepository, FileRepository fileRepository, IMappingActionExecutor mappingActionExecutor)
+        public MappingService(MappingRepository mappingRepository, FileRepository fileRepository)
         {
             this.mappingRepository = mappingRepository;
             this.fileRepository = fileRepository;
-            this.mappingActionExecutor = mappingActionExecutor;
+            
         }
         public async Task SaveMappingSet(DataSession session, string fileDefName, string mappingName)
         {
@@ -90,7 +91,7 @@ namespace FileMappingEngine.Lib.Services
 
             return await fileRepository.AddFileDefinitionAsync(fileEntity);
         }
-        public async Task ApplyMappingSetAsync(DataSession session, DataService dataService, long id)
+        public async Task ApplyMappingSetAsync(DataSession session, DataService dataService, long id, IDataTableActionExecutor actionExecutor)
         {
             if (session.File == null)
                 throw new InvalidOperationException("No file loaded.");
@@ -102,7 +103,7 @@ namespace FileMappingEngine.Lib.Services
 
             dataService.UpdateHeaderRow(session.Data, headerRow);
 
-            ExecuteMappingSteps(mapping, session, dataService);
+            ExecuteMappingSteps(mapping, session, dataService, actionExecutor);
             session.Data.IsMappingApplied = true;
         }
 
@@ -124,7 +125,65 @@ namespace FileMappingEngine.Lib.Services
             };
         }
 
-        private void ExecuteMappingSteps(MappingSet mapping, DataSession session, DataService dataService)
+        private List<string> PrepareRemoveColumns(ActionStep step)
+        {
+            if (step.Parameters == null)
+                throw new InvalidOperationException("Parameters missing for DeleteColumns action.");
+
+            if (!step.Parameters.TryGetValue("ColumnIds", out object? columnIdsObj))
+                throw new InvalidOperationException("Column IDs missing for DeleteColumns action.");
+
+            List<string>? columnIds = null;
+
+            if (columnIdsObj is JsonElement jsonElement)
+            {
+                columnIds = jsonElement
+                    .EnumerateArray()
+                    .Select(x => x.GetString()!)
+                    .ToList();
+            }
+            else if (columnIdsObj is IEnumerable<string> strings)
+            {
+                columnIds = strings.ToList();
+            }
+
+            if (columnIds == null)
+                throw new InvalidOperationException("Invalid column IDs format.");
+
+            return columnIds;
+        }
+        private string PrepareRenameColumns(ActionStep step)
+        {
+            if (step.Parameters == null)
+                throw new InvalidOperationException("Parameters missing for RenameColumn action.");
+            
+            return GetStringParameter(step, "NewName");
+        }
+        private List<string> PrepareMergeColumns(ActionStep step)
+        {
+            if (step.Parameters == null)
+                throw new InvalidOperationException("Parameters missing for MergeColumns action.");
+            string firstColumnName = step.ColumnId ?? throw new InvalidOperationException("First column name missing.");
+            string secondColumnName = GetStringParameter(step, "SecondColumnId");
+            string separator = GetStringParameter(step, "Separator");
+            string? newColumnName = step.Parameters.TryGetValue("NewName", out object? newNameObj) ? newNameObj.ToString() : null;
+            return new List<string> { firstColumnName, secondColumnName, separator, newColumnName};
+        }
+
+        private string GetStringParameter(ActionStep step, string parameterName)
+        {
+            if (step.Parameters == null || !step.Parameters.TryGetValue(parameterName, out object? valueObj))
+                throw new InvalidOperationException($"{parameterName} parameter is missing.");
+            return valueObj?.ToString() ?? throw new InvalidOperationException($"{parameterName} is null.");
+        }
+        private ColumnDirection GetDirection(ActionStep step)
+        {
+            if (step.Parameters == null || !step.Parameters.TryGetValue("Direction", out object? directionObj))
+                throw new InvalidOperationException("Direction parameter is missing.");
+            return Enum.Parse<ColumnDirection>(directionObj?.ToString() ?? throw new InvalidOperationException("Direction is null."));
+        }
+
+        private void ExecuteMappingSteps(MappingSet mapping, DataSession session, DataService dataService, IDataTableActionExecutor actionExecutor)
         {
             foreach (var step in mapping.Steps.OrderBy(s => s.Order))
             {
@@ -136,60 +195,29 @@ namespace FileMappingEngine.Lib.Services
                     case "DeleteColumn":
                         if (step.ColumnId == null)
                             throw new InvalidOperationException("Column ID missing for DeleteColumn action.");
-                        mappingActionExecutor.RemoveColumn(session.Data, step.ColumnId);
+                        actionExecutor.RemoveColumn(session.Data, step.ColumnId);
                         break;
                     case "DeleteColumns":
-                        if (step.Parameters == null)
-                            throw new InvalidOperationException("Parameters missing for DeleteColumns action.");
-
-                        if (!step.Parameters.TryGetValue("ColumnIds", out object? columnIdsObj))
-                            throw new InvalidOperationException("Column IDs missing for DeleteColumns action.");
-
-                        List<string>? columnIds = null;
-
-                        if (columnIdsObj is JsonElement jsonElement)
-                        {
-                            columnIds = jsonElement
-                                .EnumerateArray()
-                                .Select(x => x.GetString()!)
-                                .ToList();
-                        }
-                        else if (columnIdsObj is IEnumerable<string> strings)
-                        {
-                            columnIds = strings.ToList();
-                        }
-
-                        if (columnIds == null)
-                            throw new InvalidOperationException("Invalid column IDs format.");
-
-                        mappingActionExecutor.RemoveColumns(session.Data, columnIds);
+                        var columnIds = PrepareRemoveColumns(step);
+                        actionExecutor.RemoveColumns(session.Data, columnIds);
                         break;
                     case "AddColumn":
                         if (step.Parameters == null)
                             throw new InvalidOperationException("Parameters missing for AddColumn action.");
-                        string anchorId = step.Parameters["AnchorColumnId"].ToString() ?? throw new InvalidOperationException("Anchor column ID missing.");
-                        ColumnDirection direction = Enum.Parse<ColumnDirection>(step.Parameters["Direction"].ToString() ?? throw new InvalidOperationException("Direction missing."));
+                        string anchorId = GetStringParameter(step, "AnchorColumnId");
                         string? givenName = step.Parameters.TryGetValue("NewName", out object? value) ? value.ToString() : null;
-                        Type? type = step.Parameters.TryGetValue("DataType", out object? typeValue) ? Type.GetType(typeValue.ToString() ?? "") : null;
-
-                        mappingActionExecutor.AddColumn(session.Data, direction, anchorId, givenName/*, type*/);
+                        var direction = GetDirection(step);
+                        actionExecutor.AddColumn(session.Data, direction, anchorId, givenName);
                         break;
                     case "RenameColumn":
-                        if (step.Parameters == null)
-                            throw new InvalidOperationException("Parameters missing for RenameColumn action.");
                         if (step.ColumnId == null)
                             throw new InvalidOperationException("Column ID missing for RenameColumn action.");
-                        string newName = step.Parameters["NewName"].ToString() ?? throw new InvalidOperationException("New name missing.");
-                        mappingActionExecutor.RenameColumn(session.Data, step.ColumnId, newName);
+                        var newName = PrepareRenameColumns(step);
+                        actionExecutor.RenameColumn(session.Data, step.ColumnId, newName);
                         break;
                     case "MergeColumns":
-                        if (step.Parameters == null)
-                            throw new InvalidOperationException("Parameters missing for MergeColumns action.");
-                        string firstColumnName = step.ColumnId ?? throw new InvalidOperationException("First column name missing.");
-                        string secondColumnName = step.Parameters["SecondColumnId"].ToString() ?? throw new InvalidOperationException("Second column name missing.");
-                        string separator = step.Parameters["Separator"].ToString() ?? throw new InvalidOperationException("Separator missing.");
-                        string? newColumnName = step.Parameters.TryGetValue("NewName", out object? newNameObj) ? newNameObj.ToString() : step.ColumnId;
-                        mappingActionExecutor.MergeColumns(session, new ColumnReference { Name = firstColumnName }, new ColumnReference { Name = secondColumnName }, separator, newColumnName);
+                        List<string> parametrs = PrepareMergeColumns(step);
+                        actionExecutor.MergeColumns(session, new ColumnReference { Name = parametrs[0] }, new ColumnReference { Name = parametrs[1] }, parametrs[2], parametrs[3]);
                         break;
                     case "Sort":
                         if (step.Parameters == null)
@@ -197,7 +225,7 @@ namespace FileMappingEngine.Lib.Services
                         if (step.ColumnId == null)
                             throw new InvalidOperationException("Column ID missing for Sort action.");
                         bool ascending = ((JsonElement)step.Parameters["Ascending"]).GetBoolean();
-                        mappingActionExecutor.SortData(session.Data, step.ColumnId, ascending);
+                        actionExecutor.SortData(session.Data, step.ColumnId, ascending);
                         break;
                     case "Formula":
                         if (step.Parameters == null)
@@ -205,26 +233,27 @@ namespace FileMappingEngine.Lib.Services
                         if (step.ColumnId == null)
                             throw new InvalidOperationException("Column ID missing for Formula action.");
                         string formula = step.Parameters["Formula"].ToString() ?? throw new InvalidOperationException("Formula missing.");
-                        mappingActionExecutor.ApplyFormulaToColumn(session.Data, step.ColumnId, formula);
+                        actionExecutor.ApplyFormulaToColumn(session.Data, step.ColumnId, formula);
                         break;
+                    //case "SetColumnDataType":
+                    //    if (step.Parameters == null)
+                    //        throw new InvalidOperationException("Parameters missing for SetColumnDataType action.");
+
+                    //    string typeName = step.Parameters["DataType"] is JsonElement element
+                    //        ? element.GetString() ?? throw new InvalidOperationException("DataType missing.")
+                    //        : step.Parameters["DataType"].ToString()
+                    //            ?? throw new InvalidOperationException("DataType missing.");
+
+                    //    Type dataType = Type.GetType(typeName)
+                    //        ?? throw new InvalidOperationException($"Unknown type: {typeName}");
+
+                    //    if (step.ColumnId == null)
+                    //        throw new InvalidOperationException("Column ID missing.");
+
+                    //    dataService.SetColumnDataTypeCore(session.Data, step.ColumnId, dataType);
+                    //    break;
                     case "SetColumnDataType":
-                        if (step.Parameters == null)
-                            throw new InvalidOperationException("Parameters missing for SetColumnDataType action.");
-
-                        string typeName = step.Parameters["DataType"] is JsonElement element
-                            ? element.GetString() ?? throw new InvalidOperationException("DataType missing.")
-                            : step.Parameters["DataType"].ToString()
-                                ?? throw new InvalidOperationException("DataType missing.");
-
-                        Type dataType = Type.GetType(typeName)
-                            ?? throw new InvalidOperationException($"Unknown type: {typeName}");
-
-                        if (step.ColumnId == null)
-                            throw new InvalidOperationException("Column ID missing.");
-
-                        dataService.SetColumnDataTypeCore(session.Data, step.ColumnId, dataType);
-                        break;
-
+                        continue; // Skip this action as it's not implemented in the executor
                     default:
                         throw new InvalidOperationException($"Unknown action type: {step.ActionType}");
                 }

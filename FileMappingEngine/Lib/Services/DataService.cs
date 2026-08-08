@@ -18,11 +18,6 @@ namespace FileMappingEngine.Lib.Services
 {
     public class DataService
     {
-        private readonly IMappingActionExecutor _actionExecutor;
-        public DataService(IMappingActionExecutor actionExecutor)
-        {
-            _actionExecutor = actionExecutor;
-        }
         public void ResetTable(DataState dataState)
         {
             if (dataState == null)
@@ -79,13 +74,13 @@ namespace FileMappingEngine.Lib.Services
         //        }
         //    }
         //}
-        public void RemoveColumn(DataSession session, string columnName)
+        public void RemoveColumn(DataSession session, string columnName, IDataTableActionExecutor actionExecutor)
         {
             if (session.Data == null)
                 throw new InvalidOperationException("No data loaded.");
             SavePreviousState(session);
 
-            _actionExecutor.RemoveColumn(session.Data, columnName);
+            actionExecutor.RemoveColumn(session.Data, columnName);
 
             session.MappingSet.Steps.Add(new ActionStep
             {
@@ -120,7 +115,7 @@ namespace FileMappingEngine.Lib.Services
         //        throw new InvalidOperationException("Error removing columns: " + ex.Message, ex);
         //    }
         //}
-        public void RemoveColumns(DataSession session, IEnumerable<string> columnNames)
+        public void RemoveColumns(DataSession session, IEnumerable<string> columnNames, IDataTableActionExecutor actionExecutor)
         {
             if (session.Data == null)
                 throw new InvalidOperationException("No data loaded.");
@@ -129,7 +124,7 @@ namespace FileMappingEngine.Lib.Services
 
             SavePreviousState(session);
 
-            _actionExecutor.RemoveColumns(session.Data, columns);
+            actionExecutor.RemoveColumns(session.Data, columns);
 
             session.MappingSet.Steps.Add(new ActionStep
             {
@@ -173,14 +168,14 @@ namespace FileMappingEngine.Lib.Services
 
         //    return newColumnName;
         //}
-        public void AddColumn(DataSession session, ColumnDirection direction, string anchorId, string? newName)
+        public void AddColumn(DataSession session, ColumnDirection direction, string anchorId, string? newName, IDataTableActionExecutor actionExecutor)
         {
             if (session.Data == null)
                 throw new InvalidOperationException("No data loaded.");
 
             SavePreviousState(session);
 
-            string newColumnName = _actionExecutor.AddColumn(session.Data, direction, anchorId, newName);
+            string newColumnName = actionExecutor.AddColumn(session.Data, direction, anchorId, newName);
 
             session.MappingSet.Steps.Add(new ActionStep
             {
@@ -195,14 +190,14 @@ namespace FileMappingEngine.Lib.Services
             });
         }
 
-        public void RenameColumn(DataSession session, string oldName, string newName)
+        public void RenameColumn(DataSession session, string oldName, string newName, IDataTableActionExecutor actionExecutor)
         {
             if (session.Data == null)
                 throw new InvalidOperationException("No data loaded.");
 
             SavePreviousState(session);
 
-            _actionExecutor.RenameColumn(session.Data, oldName, newName);
+            actionExecutor.RenameColumn(session.Data, oldName, newName);
 
             session.MappingSet.Steps.Add(new ActionStep
             {
@@ -234,7 +229,7 @@ namespace FileMappingEngine.Lib.Services
         //    }
         //}
 
-        public void MergeColumns(DataSession session, ColumnReference first, ColumnReference second, string separator, string? resultColumnName)
+        public void MergeColumns(DataSession session, ColumnReference first, ColumnReference second, string separator, string? resultColumnName, IDataTableActionExecutor actionExecutor)
         {
             //if (session.Data == null)
             //    throw new InvalidOperationException("No file loaded.");
@@ -244,7 +239,7 @@ namespace FileMappingEngine.Lib.Services
 
             SavePreviousState(session);
 
-            string targetColumn = _actionExecutor.MergeColumns(session, first, second, separator, resultColumnName);
+            string targetColumn = actionExecutor.MergeColumns(session, first, second, separator, resultColumnName);
 
             //IXLAddress columnAddress1 = ExcelHelper.GetColumnAddressByHeaderRow(session.Data.Workbook!.Worksheet(1), session.Data.HeaderRowIndex, first.Name);
             //IXLAddress columnAddress2 = ExcelHelper.GetColumnAddressByHeaderRow(session.Data.Workbook!.Worksheet(1), session.Data.HeaderRowIndex, second.Name);
@@ -295,13 +290,13 @@ namespace FileMappingEngine.Lib.Services
             });
         }
 
-        public void SortData(DataSession session, string columnName, bool ascending)
+        public void SortData(DataSession session, string columnName, bool ascending, IDataTableActionExecutor actionExecutor)
         {
             if (session.Data == null)
                 throw new InvalidOperationException("No file loaded.");
             SavePreviousState(session);
 
-            _actionExecutor.SortData(session.Data, columnName, ascending);
+            actionExecutor.SortData(session.Data, columnName, ascending);
 
             session.Data.SortedColumn = columnName;
             session.Data.SortAscending = ascending;
@@ -460,7 +455,7 @@ namespace FileMappingEngine.Lib.Services
             return dataState.CurrentData.Columns.Contains(columnName);
         }
 
-        public void ApplyFormulaToColumn(DataSession session, string columnName, string formula)
+        public void ApplyFormulaToColumn(DataSession session, string columnName, string formula, IDataTableActionExecutor actionExecutor)
         {
             if (session.Data == null || session.Data.CurrentData == null)
                 throw new InvalidOperationException("No data loaded.");
@@ -470,7 +465,7 @@ namespace FileMappingEngine.Lib.Services
 
             SavePreviousState(session);
 
-            _actionExecutor.ApplyFormulaToColumn(session.Data, columnName, formula);
+            actionExecutor.ApplyFormulaToColumn(session.Data, columnName, formula);
 
             session.MappingSet.Steps.Add(new ActionStep
             {

@@ -3,6 +3,7 @@ using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Services;
 using FileMappingEngine.Lib.Sessions;
+using FileMappingEngine.Lib.Interfaces;
 using System.Data;
 using static FileMappingEngine.Lib.Models.Enums;
 
@@ -14,6 +15,7 @@ namespace FileMappingEngine.Lib
         private readonly FileService _fileService;
         private readonly DataService _dataService;
         private readonly MappingRepository _mappingRepository;
+        private readonly IDataTableActionExecutor _actionExecutor;
         private DataSession? CurrentSession { get; set; }
 
         public DataSession Session => CurrentSession ?? throw new InvalidOperationException("No file loaded.");
@@ -26,12 +28,13 @@ namespace FileMappingEngine.Lib
         public bool HasFile => CurrentSession != null;
         public bool IsMappingApplied => DataState.IsMappingApplied;
 
-        public AppManager(FileService fileService, DataService dataService, MappingRepository mappingRepository, MappingService mappingService)
+        public AppManager(FileService fileService, DataService dataService, MappingRepository mappingRepository, MappingService mappingService, IDataTableActionExecutor actionExecutor)
         {
             _fileService = fileService ?? throw new ArgumentNullException(nameof(fileService));
             _dataService = dataService ?? throw new ArgumentNullException(nameof(dataService));
             _mappingRepository = mappingRepository ?? throw new ArgumentNullException(nameof(mappingRepository));
             _mappingService = mappingService ?? throw new ArgumentNullException(nameof(mappingService));
+            _actionExecutor = actionExecutor ?? throw new ArgumentNullException(nameof(actionExecutor));
         }
 
         public async Task OpenFile(string path, int? headerRowIndex)
@@ -96,17 +99,17 @@ namespace FileMappingEngine.Lib
 
         public void RemoveColumn(string columnName)
         {
-            _dataService.RemoveColumn(Session, columnName);
+            _dataService.RemoveColumn(Session, columnName, _actionExecutor);
         }
 
         public void RemoveColumns(IEnumerable<string> columnNames)
         {
-            _dataService.RemoveColumns(Session, columnNames);
+            _dataService.RemoveColumns(Session, columnNames, _actionExecutor);
         }
 
         public void AddColumn(ColumnDirection direction, string anchorId, string? newName)
         {
-            _dataService.AddColumn(Session, direction, anchorId, newName);
+            _dataService.AddColumn(Session, direction, anchorId, newName, _actionExecutor);
         }
 
         public async Task SaveMappingSet(string fileDefName, string mappingName)
@@ -121,12 +124,12 @@ namespace FileMappingEngine.Lib
 
         public void RenameColumn(string oldName, string newName)
         {
-            _dataService.RenameColumn(Session, oldName, newName);
+            _dataService.RenameColumn(Session, oldName, newName, _actionExecutor);
         }
 
         public async Task ApplyMappingSetAsync(long id)
         {
-            await _mappingService.ApplyMappingSetAsync(Session, _dataService, id);
+            await _mappingService.ApplyMappingSetAsync(Session, _dataService, id, _actionExecutor);
         }
 
         public void ResetTable()
@@ -146,7 +149,7 @@ namespace FileMappingEngine.Lib
 
         public void MergeColumns(ColumnReference first, ColumnReference second, string separator, string? resultColumnName)
         {
-            _dataService.MergeColumns(Session, first, second, separator, resultColumnName);
+            _dataService.MergeColumns(Session, first, second, separator, resultColumnName, _actionExecutor);
         }
 
         public List<ColumnReference> GetDataColumns()
@@ -175,12 +178,12 @@ namespace FileMappingEngine.Lib
 
         public void SortData(string columnName, bool ascending)
         {
-            _dataService.SortData(Session, columnName, ascending);
+            _dataService.SortData(Session, columnName, ascending, _actionExecutor);
         }
 
         public void ApplyFormulaToColumn(string columnName, string formula)
         {
-            _dataService.ApplyFormulaToColumn(Session, columnName, formula);
+            _dataService.ApplyFormulaToColumn(Session, columnName, formula, _actionExecutor);
         }
 
         public void SetColumnDataType(string columnName, DataType dataType)

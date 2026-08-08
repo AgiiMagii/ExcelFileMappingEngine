@@ -12,9 +12,7 @@ namespace FileMappingEngine.Lib.Interfaces
     {
         void RemoveColumn(DataState dataState, string columnName);
         void RemoveColumns(DataState dataState, IEnumerable<string> columnNames);
-        string AddColumn(DataState dataState, ColumnDirection direction, string anchorId, string? newName);
         void RenameColumn(DataState dataState, string oldName, string newName);
-        string MergeColumns(DataSession session, ColumnReference first, ColumnReference second, string separator, string? resultColumnName);
         void SortData(DataState dataState, string columnName, bool ascending);
         void ApplyFormulaToColumn(DataState dataState, string columnName, string formula);
         void ApplyFormula(DataState dataState, string targetColumn, FormulaNode formulaTree);

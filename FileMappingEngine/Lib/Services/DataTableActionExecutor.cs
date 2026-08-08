@@ -11,12 +11,17 @@ using static FileMappingEngine.Lib.Models.Enums;
 
 namespace FileMappingEngine.Lib.Services
 {
-    public class DataTableActionExecutor : IMappingActionExecutor
+    public class DataTableActionExecutor : IDataTableActionExecutor
     {
+
         public void RemoveColumn(DataState dataState, string columnName)
         {
             if (dataState.CurrentData == null)
                 throw new InvalidOperationException("No data loaded.");
+
+            if (!dataState.CurrentData.Columns.Contains(columnName))
+                throw new ArgumentException($"Column '{columnName}' does not exist.");
+
             if (dataState.CurrentData.Columns.Contains(columnName))
             {
                 dataState.CurrentData.Columns.Remove(columnName);
@@ -27,19 +32,14 @@ namespace FileMappingEngine.Lib.Services
         {
             if (dataState.CurrentData == null)
                 throw new InvalidOperationException("No data loaded.");
-            try
+
+            var missing = columnNames.Where(c => !dataState.CurrentData.Columns.Contains(c)).ToList();
+            if (missing.Count > 0)
+                throw new ArgumentException($"Column(s) not found: {string.Join(", ", missing)}");
+
+            foreach (var columnName in columnNames)
             {
-                foreach (var columnName in columnNames)
-                {
-                    if (dataState.CurrentData.Columns.Contains(columnName))
-                    {
-                        dataState.CurrentData.Columns.Remove(columnName);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Error removing columns: " + ex.Message, ex);
+                dataState.CurrentData.Columns.Remove(columnName);
             }
         }
 
@@ -175,6 +175,11 @@ namespace FileMappingEngine.Lib.Services
 
                 row[targetColumn] = result;
             }
+        }
+
+        public void SetColumnDataType(DataState dataState, string columnName, Type dataType)
+        {
+            throw new NotImplementedException();
         }
     }
 }
