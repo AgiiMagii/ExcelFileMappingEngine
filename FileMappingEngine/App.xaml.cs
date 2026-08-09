@@ -48,6 +48,7 @@ namespace FileMappingEngine
             services.AddSingleton<FileRepository>();
             services.AddSingleton<AppManager>();
             services.AddSingleton<IDataTableActionExecutor, DataTableActionExecutor>();
+            services.AddSingleton<IWorkbookActionExecutor, WorkbookActionExecutor>();
             services.AddSingleton(sp =>
             {
                 string connectionString =

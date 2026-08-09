@@ -30,7 +30,7 @@ namespace FileMappingEngine.Lib.Services
 
             var addresses = columnNames
                 .Select(name => ExcelHelper.GetColumnAddressByHeaderRow(worksheet, dataState.HeaderRowIndex, name).ColumnNumber)
-                .OrderByDescending(colNum => colNum)   // delete right-to-left so earlier addresses don't shift
+                .OrderByDescending(colNum => colNum)
                 .ToList();
 
             foreach (var colNum in addresses)
@@ -95,8 +95,6 @@ namespace FileMappingEngine.Lib.Services
 
         public void SortData(DataState dataState, string columnName, bool ascending)
         {
-            //string direction = ascending ? "ASC" : "DESC";
-
             var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
             var range = ExcelHelper.GetDataRangeAfterHeader(dataState.Workbook.Worksheet(1), dataState.HeaderRowIndex);
 
@@ -105,38 +103,37 @@ namespace FileMappingEngine.Lib.Services
 
         public void ApplyFormulaToColumn(DataState dataState, string columnName, string formula)
         {
-            var tokens = FormulaService.Tokenize(formula);
-            var formulaTree = FormulaService.Parse(tokens);
+            IXLWorksheet worksheet = dataState.Workbook!
+                .Worksheet(1);
 
-            ApplyFormula(
-                dataState,
-                columnName,
-                formulaTree);
+            IXLAddress columnAddress =
+                ExcelHelper.GetColumnAddressByHeaderRow(
+                    worksheet,
+                    dataState.HeaderRowIndex,
+                    columnName);
 
-            var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
-            var excelFormula = FormulaService.ConvertToExcelFormula(formula, dataState);
-            var dataRange = ExcelHelper.GetDataRangeForColumn(dataState.Workbook.Worksheet(1), dataState.HeaderRowIndex, columnAddress);
-            var rows = dataRange.Columns().FirstOrDefault()?.Cells() ?? Enumerable.Empty<IXLCell>();
-            foreach (var cell in rows)
+            if (columnAddress == null)
+                throw new InvalidOperationException(
+                    $"Column '{columnName}' not found.");
+
+            XLFormula excelFormula =
+                FormulaService.ConvertToExcelFormula(
+                    formula,
+                    dataState);
+
+            IXLRange dataRange =
+                ExcelHelper.GetDataRangeForColumn(
+                    worksheet,
+                    dataState.HeaderRowIndex,
+                    columnAddress);
+
+            foreach (var cell in dataRange.Columns().First().Cells())
             {
-                formula = string.Format(excelFormula.Value, cell.Address.RowNumber);
-                cell.FormulaA1 = formula;
-            }
-        }
+                string cellFormula = string.Format(
+                    excelFormula.Value,
+                    cell.Address.RowNumber);
 
-        public void ApplyFormula(DataState dataState, string targetColumn, FormulaNode formulaTree)
-        {
-            IXLAddress targetColumnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, targetColumn);
-            IXLCells targetCells = ExcelHelper.GetDataRangeForColumn(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, targetColumnAddress).Cells();
-            string formula = FormulaService.ConvertToExcelFormula(formulaTree.Value, dataState).Value;
-
-            foreach (var cell in targetCells)
-            {
-                formula = string.Format(formula, cell.Address.RowNumber);
-                cell.FormulaA1 = formula;
-
-                dataState.Workbook.Worksheet(1).Cell(cell.Address.RowNumber, targetColumnAddress.ColumnNumber).FormulaA1 = formula;
-                SetColumnDataType(dataState, targetColumn, typeof(double));
+                cell.FormulaA1 = cellFormula;
             }
         }
 

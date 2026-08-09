@@ -27,7 +27,6 @@ namespace FileMappingEngine.Lib.Services
         {
             this.mappingRepository = mappingRepository;
             this.fileRepository = fileRepository;
-            
         }
         public async Task SaveMappingSet(DataSession session, string fileDefName, string mappingName)
         {
@@ -99,14 +98,18 @@ namespace FileMappingEngine.Lib.Services
                 throw new InvalidOperationException("Current data not available.");
 
             MappingSet mapping = await GetMappingById(id) ?? throw new InvalidOperationException("Mapping set not found.");
-            int headerRow = mapping.HeaderRow;
+            session.MappingSet = mapping;
 
-            dataService.UpdateHeaderRow(session.Data, headerRow);
+            dataService.UpdateHeaderRow(session.Data, mapping.HeaderRow);
 
-            ExecuteMappingSteps(mapping, session, dataService, actionExecutor);
+            ExecuteMappingSteps(
+                mapping,
+                session,
+                dataService,
+                actionExecutor);
+
             session.Data.IsMappingApplied = true;
         }
-
         public async Task<MappingSet?> GetMappingById(long id)
         {
             var entity = await mappingRepository.GetMappingByIdAsync(id);
@@ -235,25 +238,83 @@ namespace FileMappingEngine.Lib.Services
                         string formula = step.Parameters["Formula"].ToString() ?? throw new InvalidOperationException("Formula missing.");
                         actionExecutor.ApplyFormulaToColumn(session.Data, step.ColumnId, formula);
                         break;
-                    //case "SetColumnDataType":
-                    //    if (step.Parameters == null)
-                    //        throw new InvalidOperationException("Parameters missing for SetColumnDataType action.");
-
-                    //    string typeName = step.Parameters["DataType"] is JsonElement element
-                    //        ? element.GetString() ?? throw new InvalidOperationException("DataType missing.")
-                    //        : step.Parameters["DataType"].ToString()
-                    //            ?? throw new InvalidOperationException("DataType missing.");
-
-                    //    Type dataType = Type.GetType(typeName)
-                    //        ?? throw new InvalidOperationException($"Unknown type: {typeName}");
-
-                    //    if (step.ColumnId == null)
-                    //        throw new InvalidOperationException("Column ID missing.");
-
-                    //    dataService.SetColumnDataTypeCore(session.Data, step.ColumnId, dataType);
-                    //    break;
                     case "SetColumnDataType":
-                        continue; // Skip this action as it's not implemented in the executor
+                        continue;
+                    default:
+                        throw new InvalidOperationException($"Unknown action type: {step.ActionType}");
+                }
+            }
+        }
+        private void ExecuteMappingStepsOnWorkbook(DataSession session, IWorkbookActionExecutor actionExecutor)
+        {
+            foreach (var step in session.MappingSet.Steps.OrderBy(s => s.Order))
+            {
+                if (session.Data == null)
+                    throw new InvalidOperationException("Current data not available.");
+
+                switch (step.ActionType)
+                {
+                    case "DeleteColumn":
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing for DeleteColumn action.");
+                        actionExecutor.RemoveColumn(session.Data, step.ColumnId);
+                        break;
+                    case "DeleteColumns":
+                        var columnIds = PrepareRemoveColumns(step);
+                        actionExecutor.RemoveColumns(session.Data, columnIds);
+                        break;
+                    case "AddColumn":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for AddColumn action.");
+                        string anchorId = GetStringParameter(step, "AnchorColumnId");
+                        string name = step.ColumnId ?? throw new InvalidOperationException("Column ID missing for AddColumn action.");
+                        var direction = GetDirection(step);
+                        actionExecutor.AddColumn(session.Data, direction, anchorId, name);
+                        break;
+                    case "RenameColumn":
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing for RenameColumn action.");
+                        var newName = PrepareRenameColumns(step);
+                        actionExecutor.RenameColumn(session.Data, step.ColumnId, newName);
+                        break;
+                    case "MergeColumns":
+                        List<string> parametrs = PrepareMergeColumns(step);
+                        actionExecutor.MergeColumns(session, new ColumnReference { Name = parametrs[0] }, new ColumnReference { Name = parametrs[1] }, parametrs[2], parametrs[3]);
+                        break;
+                    case "Sort":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for Sort action.");
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing for Sort action.");
+                        bool ascending = ((JsonElement)step.Parameters["Ascending"]).GetBoolean();
+                        actionExecutor.SortData(session.Data, step.ColumnId, ascending);
+                        break;
+                    case "Formula":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for Formula action.");
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing for Formula action.");
+                        string formula = step.Parameters["Formula"].ToString() ?? throw new InvalidOperationException("Formula missing.");
+                        actionExecutor.ApplyFormulaToColumn(session.Data, step.ColumnId, formula);
+                        break;
+                    case "SetColumnDataType":
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for SetColumnDataType action.");
+
+                        string typeName = step.Parameters["DataType"] is JsonElement element
+                            ? element.GetString() ?? throw new InvalidOperationException("DataType missing.")
+                            : step.Parameters["DataType"].ToString()
+                                ?? throw new InvalidOperationException("DataType missing.");
+
+                        Type dataType = Type.GetType(typeName)
+                            ?? throw new InvalidOperationException($"Unknown type: {typeName}");
+
+                        if (step.ColumnId == null)
+                            throw new InvalidOperationException("Column ID missing.");
+
+                        actionExecutor.SetColumnDataType(session.Data, step.ColumnId, dataType);
+                        break;
+
                     default:
                         throw new InvalidOperationException($"Unknown action type: {step.ActionType}");
                 }
@@ -282,6 +343,23 @@ namespace FileMappingEngine.Lib.Services
                 Id = e.Id,
                 Name = e.Name
             }).ToList();
+        }
+
+        public bool TransformWorkbook(IXLWorkbook workbook, DataSession session, IWorkbookActionExecutor actionExecutor)
+        {
+            MappingSet mapping = session.MappingSet ?? throw new InvalidOperationException("Mapping set not available.");
+            if (workbook == null)
+                throw new ArgumentNullException(nameof(workbook));
+            if (mapping == null)
+                throw new ArgumentNullException(nameof(mapping));
+            //DataState dataState = new DataState
+            //{
+            //    Workbook = workbook,
+            //    HeaderRowIndex = mapping.HeaderRow
+            //};
+            //dataService.UpdateHeaderRow(dataState, mapping.HeaderRow);
+            ExecuteMappingStepsOnWorkbook(session, actionExecutor);
+            return true;
         }
     }
 }

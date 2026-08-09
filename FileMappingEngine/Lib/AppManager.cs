@@ -16,6 +16,7 @@ namespace FileMappingEngine.Lib
         private readonly DataService _dataService;
         private readonly MappingRepository _mappingRepository;
         private readonly IDataTableActionExecutor _actionExecutor;
+        private readonly IWorkbookActionExecutor _workbookActionExecutor;
         private DataSession? CurrentSession { get; set; }
 
         public DataSession Session => CurrentSession ?? throw new InvalidOperationException("No file loaded.");
@@ -28,13 +29,14 @@ namespace FileMappingEngine.Lib
         public bool HasFile => CurrentSession != null;
         public bool IsMappingApplied => DataState.IsMappingApplied;
 
-        public AppManager(FileService fileService, DataService dataService, MappingRepository mappingRepository, MappingService mappingService, IDataTableActionExecutor actionExecutor)
+        public AppManager(FileService fileService, DataService dataService, MappingRepository mappingRepository, MappingService mappingService, IDataTableActionExecutor actionExecutor, IWorkbookActionExecutor workbookActionExecutor)
         {
             _fileService = fileService ?? throw new ArgumentNullException(nameof(fileService));
             _dataService = dataService ?? throw new ArgumentNullException(nameof(dataService));
             _mappingRepository = mappingRepository ?? throw new ArgumentNullException(nameof(mappingRepository));
             _mappingService = mappingService ?? throw new ArgumentNullException(nameof(mappingService));
             _actionExecutor = actionExecutor ?? throw new ArgumentNullException(nameof(actionExecutor));
+            _workbookActionExecutor = workbookActionExecutor ?? throw new ArgumentNullException(nameof(workbookActionExecutor));
         }
 
         public async Task OpenFile(string path, int? headerRowIndex)
@@ -93,8 +95,11 @@ namespace FileMappingEngine.Lib
 
         public void SaveFile(string filePath)
         {
-            //_fileService.SaveFile(Session, filePath);
-            _fileService.SaveFile(Session.Data.Workbook, filePath);
+            if (Session.Data == null || Session.Data.Workbook == null)
+                throw new InvalidOperationException("No workbook available to save.");
+
+            if (_mappingService.TransformWorkbook(Session.Data.Workbook, Session, _workbookActionExecutor))
+                _fileService.SaveFile(Session.Data.Workbook, filePath);
         }
 
         public void RemoveColumn(string columnName)

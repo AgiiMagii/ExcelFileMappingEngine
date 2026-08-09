@@ -4,6 +4,7 @@ using FileMappingEngine.Lib.Database.Repositories;
 using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Lib.Sessions;
+using FileMappingEngine.Lib.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.IO;
