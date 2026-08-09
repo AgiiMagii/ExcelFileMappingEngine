@@ -183,4 +183,7 @@
   <data name="Fail_sort" xml:space="preserve">
     <value>Failed to sort by {0}!</value>
   </data>
+  <data name="Fail_empty" xml:space="preserve">
+    <value>Could not load an empty {0}!</value>
+  </data>
 </root>

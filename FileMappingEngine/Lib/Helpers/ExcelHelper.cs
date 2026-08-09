@@ -28,7 +28,11 @@ namespace FileMappingEngine.Lib.Helpers
 
             using var ms = new MemoryStream(originalBytes);
             using XLWorkbook workbook = new(ms);
+
             IXLWorksheet worksheet = workbook.Worksheet(1);
+
+            if (worksheet.CellsUsed().Count() == 0)
+                throw new ArgumentException("The Excel file is empty.");
 
             int maxCol = worksheet.LastCellUsed().Address.ColumnNumber;
             var allRows = worksheet.RowsUsed().ToList();

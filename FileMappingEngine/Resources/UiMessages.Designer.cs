@@ -169,6 +169,15 @@ namespace FileMappingEngine.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Could not load an empty {0}!.
+        /// </summary>
+        internal static string Fail_empty {
+            get {
+                return ResourceManager.GetString("Fail_empty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Failed to load {0}!.
         /// </summary>
         internal static string Fail_load {

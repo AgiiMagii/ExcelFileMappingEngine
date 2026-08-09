@@ -317,7 +317,14 @@ namespace FileMappingEngine.Lib.Services
 
             SavePreviousState(session);
 
-            actionExecutor.ApplyFormulaToColumn(session.Data, columnName, formula);
+            bool hasData = session.Data.CurrentData.Rows
+            .Cast<DataRow>()
+            .Any(row => !row.IsNull(columnName));
+
+            if (hasData)
+            {
+                actionExecutor.ApplyFormulaToColumn(session.Data, columnName, formula);
+            }
 
             session.MappingSet.Steps.Add(new ActionStep
             {

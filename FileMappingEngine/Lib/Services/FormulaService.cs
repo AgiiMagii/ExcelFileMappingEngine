@@ -279,7 +279,7 @@ namespace FileMappingEngine.Lib.Services
                     decimal.Parse(node.Value!, CultureInfo.InvariantCulture),
 
                 FormulaNodeType.Column =>
-                    Convert.ToDecimal(row[node.Value!]),
+                    GetDecimalValue(row, node.Value!),
 
                 FormulaNodeType.Operator =>
                     EvaluateOperator(node, row),
@@ -336,6 +336,13 @@ namespace FileMappingEngine.Lib.Services
             int decimals = (int)Evaluate(node.Arguments[1], row);
 
             return Math.Round(value, decimals, MidpointRounding.AwayFromZero);
+        }
+        private static decimal GetDecimalValue(DataRow row, string columnName)
+        {
+            if (row.IsNull(columnName))
+                return 0m;
+
+            return Convert.ToDecimal(row[columnName]);
         }
         public static XLFormula ConvertToExcelFormula(string formula, DataState dataState)
         {

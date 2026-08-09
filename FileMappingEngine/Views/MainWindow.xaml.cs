@@ -48,6 +48,10 @@ namespace FileMappingEngine
 
                 ReloadGrid();
             }
+            catch (ArgumentException)
+            {
+                MessageBox.Show(string.Format(UiMessages.Fail_empty, UiTerms.File), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
             catch (Exception)
             {
                 MessageBox.Show(string.Format(UiMessages.Fail_load, UiTerms.File), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
