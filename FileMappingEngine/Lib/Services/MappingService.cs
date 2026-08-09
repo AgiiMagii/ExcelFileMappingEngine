@@ -352,13 +352,9 @@ namespace FileMappingEngine.Lib.Services
                 throw new ArgumentNullException(nameof(workbook));
             if (mapping == null)
                 throw new ArgumentNullException(nameof(mapping));
-            //DataState dataState = new DataState
-            //{
-            //    Workbook = workbook,
-            //    HeaderRowIndex = mapping.HeaderRow
-            //};
-            //dataService.UpdateHeaderRow(dataState, mapping.HeaderRow);
+            
             ExecuteMappingStepsOnWorkbook(session, actionExecutor);
+            workbook.Worksheet(1).Columns().AdjustToContents();
             return true;
         }
     }

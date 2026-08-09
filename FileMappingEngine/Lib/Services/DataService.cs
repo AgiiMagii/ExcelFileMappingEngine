@@ -59,21 +59,6 @@ namespace FileMappingEngine.Lib.Services
             dataState.FileDefinition.Hash = DataHelper.CreateHash(dataState.FileDefinition.Columns);
         }
 
-        //public void RemoveColumnCore(DataState dataState, string columnName)
-        //{
-        //    if (dataState.CurrentData == null)
-        //        throw new InvalidOperationException("No data loaded.");
-        //    if (dataState.CurrentData.Columns.Contains(columnName))
-        //    {
-        //        dataState.CurrentData.Columns.Remove(columnName);
-
-        //        var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
-        //        if (columnAddress != null)
-        //        {
-        //            dataState.Workbook.Worksheet(1).Column(columnAddress.ColumnNumber).Delete();
-        //        }
-        //    }
-        //}
         public void RemoveColumn(DataSession session, string columnName, IDataTableActionExecutor actionExecutor)
         {
             if (session.Data == null)
@@ -89,32 +74,7 @@ namespace FileMappingEngine.Lib.Services
                 Order = session.MappingSet.Steps.Count + 1
             });
         }
-        //public void RemoveColumnsCore(DataState dataState, IEnumerable<string> columnNames)
-        //{
-        //    if (dataState.CurrentData == null)
-        //        throw new InvalidOperationException("No data loaded.");
-        //    try
-        //    {
-        //        foreach (var columnName in columnNames)
-        //        {
-
-        //            if (dataState.CurrentData.Columns.Contains(columnName))
-        //            {
-        //                var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
-                        
-        //                if (columnAddress != null)
-        //                {
-        //                    dataState.Workbook.Worksheet(1).Column(columnAddress.ColumnNumber).Delete();
-        //                }
-        //                dataState.CurrentData.Columns.Remove(columnName);
-        //            }
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        throw new InvalidOperationException("Error removing columns: " + ex.Message, ex);
-        //    }
-        //}
+        
         public void RemoveColumns(DataSession session, IEnumerable<string> columnNames, IDataTableActionExecutor actionExecutor)
         {
             if (session.Data == null)
@@ -138,36 +98,6 @@ namespace FileMappingEngine.Lib.Services
             });
         }
 
-
-        //public string AddColumnCore(DataState dataState, ColumnDirection direction, string anchorId, string? newName/*, Type? dataType = null*/)
-        //{
-        //    if (dataState == null || dataState.CurrentData == null)
-        //        throw new InvalidOperationException("No data loaded.");
-
-        //    string newColumnName = newName ?? GenerateColumnName(dataState);
-
-        //    int index = CalculateColumnIndex(dataState, anchorId, direction);
-
-        //    dataState.CurrentData.Columns.Add(newColumnName/*, dataType ?? typeof(object)*/);
-        //    dataState.CurrentData.Columns[newColumnName]?.SetOrdinal(index);
-
-        //    var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, anchorId);
-        //    var columnFont = dataState.Workbook.Worksheet(1).Cell(dataState.HeaderRowIndex, columnAddress?.ColumnNumber ?? 1).Style.Font;
-            
-        //    if (columnAddress != null)
-        //    {
-        //        int excelColumnIndex = columnAddress.ColumnNumber;
-        //        if (direction == ColumnDirection.Right)
-        //        {
-        //            excelColumnIndex++;
-        //        }
-        //        dataState.Workbook.Worksheet(1).Column(excelColumnIndex).InsertColumnsBefore(1);
-        //        dataState.Workbook.Worksheet(1).Cell(dataState.HeaderRowIndex, excelColumnIndex).Value = newColumnName;
-        //        dataState.Workbook.Worksheet(1).Cell(dataState.HeaderRowIndex, excelColumnIndex).Style.Font = columnFont;
-        //    }
-
-        //    return newColumnName;
-        //}
         public void AddColumn(DataSession session, ColumnDirection direction, string anchorId, string? newName, IDataTableActionExecutor actionExecutor)
         {
             if (session.Data == null)
@@ -211,70 +141,12 @@ namespace FileMappingEngine.Lib.Services
             });
 
         }
-        //public void RenameColumnCore(DataState dataState, string oldName, string newName)
-        //{
-        //    if (dataState == null || dataState.CurrentData == null)
-        //        throw new InvalidOperationException("No data loaded.");
-
-        //    if (!dataState.CurrentData.Columns.Contains(oldName))
-        //        throw new ArgumentException($"Column '{oldName}' does not exist.");
-        //    if (dataState.CurrentData.Columns.Contains(newName))
-        //        throw new ArgumentException($"Column name '{newName}' is already taken.");
-
-        //    dataState.CurrentData.Columns[oldName]?.ColumnName = newName;
-        //    var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, oldName);
-        //    if (columnAddress != null)
-        //    {
-        //        dataState.Workbook.Worksheet(1).Cell(dataState.HeaderRowIndex, columnAddress.ColumnNumber).Value = newName;
-        //    }
-        //}
 
         public void MergeColumns(DataSession session, ColumnReference first, ColumnReference second, string separator, string? resultColumnName, IDataTableActionExecutor actionExecutor)
         {
-            //if (session.Data == null)
-            //    throw new InvalidOperationException("No file loaded.");
-
-            //if (session.Data.CurrentData == null)
-            //    throw new InvalidOperationException("Current data not available.");
-
             SavePreviousState(session);
 
             string targetColumn = actionExecutor.MergeColumns(session, first, second, separator, resultColumnName);
-
-            //IXLAddress columnAddress1 = ExcelHelper.GetColumnAddressByHeaderRow(session.Data.Workbook!.Worksheet(1), session.Data.HeaderRowIndex, first.Name);
-            //IXLAddress columnAddress2 = ExcelHelper.GetColumnAddressByHeaderRow(session.Data.Workbook!.Worksheet(1), session.Data.HeaderRowIndex, second.Name);
-
-            //string targetColumn =
-            //    string.IsNullOrWhiteSpace(resultColumnName)
-            //    ? first.Name
-            //    : resultColumnName;
-
-            //foreach (DataRow row in session.Data.CurrentData.Rows)
-            //{
-            //    string firstValue = row[first.Name]?.ToString() ?? "";
-            //    string secondValue = row[second.Name]?.ToString() ?? "";
-
-            //    row[first.Name] =
-            //        string.IsNullOrEmpty(secondValue)
-            //        ? firstValue
-            //        : $"{firstValue}{separator}{secondValue}";
-            //}
-
-            //for (int row = session.Data.HeaderRowIndex + 1; row <= session.Data.Workbook.Worksheet(1).LastRowUsed()?.RowNumber(); row++)
-            //{
-            //    string firstValue = session.Data.Workbook.Worksheet(1).Cell(row, columnAddress1?.ColumnNumber ?? 1).GetString();
-            //    string secondValue = session.Data.Workbook.Worksheet(1).Cell(row, columnAddress2?.ColumnNumber ?? 1).GetString();
-            //    string mergedValue = string.IsNullOrEmpty(secondValue)
-            //        ? firstValue
-            //        : $"{firstValue}{separator}{secondValue}";
-            //    session.Data.Workbook.Worksheet(1).Cell(row, columnAddress1?.ColumnNumber ?? 1).Value = mergedValue;
-            //}
-
-            //if (targetColumn != first.Name)
-            //{
-            //    RenameColumnCore(session.Data, first.Name, targetColumn);
-            //}
-            //RemoveColumnCore(session.Data, second.Name);
 
             session.MappingSet.Steps.Add(new ActionStep
             {
@@ -301,26 +173,6 @@ namespace FileMappingEngine.Lib.Services
             session.Data.SortedColumn = columnName;
             session.Data.SortAscending = ascending;
         }
-        //public void SortDataCore(DataState dataState, string columnName, bool ascending)
-        //{
-        //    if (dataState.CurrentData == null)
-        //        throw new InvalidOperationException("Current data not available.");
-
-        //    if (!dataState.CurrentData.Columns.Contains(columnName))
-        //        throw new ArgumentException($"Column '{columnName}' does not exist.");
-
-        //    string direction = ascending ? "ASC" : "DESC";
-
-        //    DataView view = dataState.CurrentData.DefaultView;
-        //    view.Sort = $"{columnName} {direction}";
-
-        //    dataState.CurrentData = view.ToTable();
-
-        //    var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
-        //    var range = ExcelHelper.GetDataRangeAfterHeader(dataState.Workbook.Worksheet(1), dataState.HeaderRowIndex);
-
-        //    range.Sort(columnAddress?.ColumnNumber ?? 1, ascending ? XLSortOrder.Ascending : XLSortOrder.Descending);
-        //}
 
         public void SetColumnDataType(DataSession session, string columnName, Type dataType)
         {
@@ -333,7 +185,7 @@ namespace FileMappingEngine.Lib.Services
 
             SavePreviousState(session);
 
-            SetColumnDataTypeCore(session.Data, columnName, dataType);
+            //SetColumnDataTypeCore(session.Data, columnName, dataType);
 
             session.MappingSet.Steps.Add(new ActionStep
             {
@@ -346,28 +198,28 @@ namespace FileMappingEngine.Lib.Services
                 }
             });
         }
-        public void SetColumnDataTypeCore(DataState dataState, string columnName, Type dataType)
-        {
-            var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
-            var worksheet = dataState.Workbook.Worksheet(1);
+        //public void SetColumnDataTypeCore(DataState dataState, string columnName, Type dataType)
+        //{
+        //    var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
+        //    var worksheet = dataState.Workbook.Worksheet(1);
 
-            var columnCells = worksheet
-                .Column(columnAddress.ColumnNumber)
-                .CellsUsed()
-                .Where(c => c.Address.RowNumber > dataState.HeaderRowIndex);
+        //    var columnCells = worksheet
+        //        .Column(columnAddress.ColumnNumber)
+        //        .CellsUsed()
+        //        .Where(c => c.Address.RowNumber > dataState.HeaderRowIndex);
 
-            foreach (var cell in columnCells)
-            {
-                if (dataType == typeof(string))
-                {
-                    cell.Style.NumberFormat.Format = "@";
-                }
-                else
-                {
-                    cell.Style.NumberFormat.Format = "General";
-                }
-            }
-        }
+        //    foreach (var cell in columnCells)
+        //    {
+        //        if (dataType == typeof(string))
+        //        {
+        //            cell.Style.NumberFormat.Format = "@";
+        //        }
+        //        else
+        //        {
+        //            cell.Style.NumberFormat.Format = "General";
+        //        }
+        //    }
+        //}
 
         private void SavePreviousState(DataSession session)
         {
@@ -512,8 +364,8 @@ namespace FileMappingEngine.Lib.Services
                 decimal result = FormulaService.Evaluate(formulaTree, row);
 
                 row[targetColumn] = result;
-                dataState.Workbook!.Worksheet(1).Cell(row.Table.Rows.IndexOf(row) + dataState.HeaderRowIndex + 1, ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook.Worksheet(1), dataState.HeaderRowIndex, targetColumn)?.ColumnNumber ?? 1).Value = result;
-                SetColumnDataTypeCore(dataState, targetColumn, typeof(double));
+                //dataState.Workbook!.Worksheet(1).Cell(row.Table.Rows.IndexOf(row) + dataState.HeaderRowIndex + 1, ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook.Worksheet(1), dataState.HeaderRowIndex, targetColumn)?.ColumnNumber ?? 1).Value = result;
+                //SetColumnDataTypeCore(dataState, targetColumn, typeof(double));
             }
         }
 

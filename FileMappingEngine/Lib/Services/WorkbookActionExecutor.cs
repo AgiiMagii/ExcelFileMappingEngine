@@ -141,11 +141,8 @@ namespace FileMappingEngine.Lib.Services
         {
             var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
             var worksheet = dataState.Workbook.Worksheet(1);
-
-            var columnCells = worksheet
-                .Column(columnAddress.ColumnNumber)
-                .CellsUsed()
-                .Where(c => c.Address.RowNumber > dataState.HeaderRowIndex);
+            var columnCells = ExcelHelper.GetDataRangeForColumn(worksheet, dataState.HeaderRowIndex, columnAddress)
+                .Cells();
 
             foreach (var cell in columnCells)
             {
