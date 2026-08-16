@@ -76,13 +76,7 @@ namespace FileMappingEngine.Lib.Services
             session.File = null;
             session.Data = null;
         }
-        public void SaveFile(DataSession session, string path, List<List<string>>? ignoredRows = null)
-        {
-            ArgumentNullException.ThrowIfNull(session);
-            if (session.Data?.CurrentData == null)
-                throw new InvalidOperationException("No data to save.");
-            ExcelHelper.SaveFile(path, session.Data.CurrentData, ignoredRows ?? []);
-        }
+        
         public void SaveFile(IXLWorkbook workbook, string path)
         {
             ExcelHelper.SaveExcelFile(path, workbook);

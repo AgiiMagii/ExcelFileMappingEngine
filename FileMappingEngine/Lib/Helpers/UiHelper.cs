@@ -57,5 +57,22 @@ namespace FileMappingEngine.Lib.Helpers
                     yield return childOfChild;
             }
         }
+        public static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+
+                if (child is T result)
+                    return result;
+
+                var descendant = FindVisualChild<T>(child);
+
+                if (descendant != null)
+                    return descendant;
+            }
+
+            return null;
+        }
     }
 }

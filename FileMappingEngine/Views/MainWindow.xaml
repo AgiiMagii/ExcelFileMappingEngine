@@ -5,10 +5,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FileMappingEngine"
         mc:Ignorable="d"
-        Title="File Mapper" Height="500" Width="1000">
+        Title="File Mapper" Height="500" Width="1000"
+        Loaded="Window_Loaded">
     <Grid>
         <DockPanel LastChildFill="True">
-            <StackPanel x:Name="mappingPanel" Width="80"/>
+            <StackPanel x:Name="mappingPanel"
+            Width="150"
+            Margin="5,50,5,5"
+            HorizontalAlignment="Left"/>
             <ToolBar DockPanel.Dock="Top" Height="41" Padding="5">
                 <TextBox Name="txtFilePath" HorizontalAlignment="Left" TextWrapping="Wrap" Text="Choose File" VerticalAlignment="Top" Width="200"/>
                 <Button Name="ChooseFileButton" Content="Open File" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,0,20,0" Click="ChooseFileButton_Click"/>
@@ -23,13 +27,27 @@
 
             </ToolBar>
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="3*" />
+                    <RowDefinition Height="1*" />
+                </Grid.RowDefinitions>
+
                 <DataGrid Name="dataGrid"
-                  AutoGenerateColumns="True"
-                  CanUserSortColumns="True"
-                  HeadersVisibility="Column"
-                  Margin="5"
-                  Sorting="OnDataGridSorting_Sorting"
-                  AutoGeneratingColumn="DataGrid_AutoGeneratingColumn"/>
+              Grid.Row="0"
+              AutoGenerateColumns="True"
+              CanUserSortColumns="True"
+              HeadersVisibility="Column"
+              Margin="5"
+              Sorting="OnDataGridSorting_Sorting"
+              SizeChanged="DataGridColumn_SizeChanged"
+              AutoGeneratingColumn="DataGrid_AutoGeneratingColumn"/>
+
+                <DataGrid Name="calculationGrid"
+              Grid.Row="1"
+              AutoGenerateColumns="False"
+              HeadersVisibility="None"
+              Margin="5,0,5,5"
+              CanUserAddRows="True"/>
             </Grid>
         </DockPanel>
         <Grid x:Name="RenameColumnOverlay"

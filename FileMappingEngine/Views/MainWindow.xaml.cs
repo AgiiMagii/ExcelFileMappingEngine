@@ -25,10 +25,23 @@ namespace FileMappingEngine
         private string? fileName;
         private bool _allowSorting = false;
         private string? _selectedColumnName;
+        private ScrollViewer? dataGridScrollViewer;
+        private ScrollViewer? calculationGridScrollViewer;
         public MainWindow(AppManager appManager)
         {
             InitializeComponent();
             this.appManager = appManager;
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            dataGridScrollViewer = UiHelper.FindVisualChild<ScrollViewer>(dataGrid);
+            calculationGridScrollViewer = UiHelper.FindVisualChild<ScrollViewer>(calculationGrid);
+
+            if (dataGridScrollViewer != null && calculationGridScrollViewer != null)
+            {
+                dataGridScrollViewer.ScrollChanged += DataGridScrollViewer_ScrollChanged;
+            }
         }
 
         private async Task LoadFileAsync(string fileName, int? headerRowIndex)
@@ -69,7 +82,10 @@ namespace FileMappingEngine
                 var button = new Button
                 {
                     Content = mapping.Name,
-                    Tag = mapping.Id
+                    Tag = mapping.Id,
+                    Margin = new Thickness(0, 0, 0, 5),
+                    Padding = new Thickness(8, 4, 8, 4),
+                    HorizontalAlignment = HorizontalAlignment.Stretch
                 };
 
                 button.Click += MappingSetButton_Click;
@@ -102,8 +118,8 @@ namespace FileMappingEngine
 
                 ReloadGrid();
             }
-            catch (Exception) 
-            { 
+            catch (Exception)
+            {
                 MessageBox.Show(string.Format(UiMessages.Fail_change, UiTerms.HeaderRow), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -118,6 +134,7 @@ namespace FileMappingEngine
             helper.UpdateSelectedColumnHeaders(dataGrid, _selectedColumns);
 
             SyncSort();
+            SyncCalculationGrid();
         }
         private void SyncSort()
         {
@@ -181,7 +198,7 @@ namespace FileMappingEngine
 
             try
             {
-                
+
                 await LoadFileAsync(fileName, headerRowIndex);
 
                 txtFilePath.Text = appManager?.Session?.File?.FileName;
@@ -336,6 +353,9 @@ namespace FileMappingEngine
             style.Setters.Add(new EventSetter(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler(ColumnHeader_PreviewMouseLeftButtonDown)));
             style.Setters.Add(new EventSetter(ContextMenuOpeningEvent, new ContextMenuEventHandler(ColumnHeader_ContextMenuOpening)));
             column.HeaderStyle = style;
+
+            DependencyPropertyDescriptor.FromProperty(DataGridColumn.ActualWidthProperty, typeof(DataGridColumn))
+                ?.AddValueChanged(column, DataGridColumn_ActualWidthChanged);
         }
         private void ColumnHeader_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
@@ -435,7 +455,7 @@ namespace FileMappingEngine
         {
             ContextMenu menu = new();
 
-            MenuItem removeItem = new () { Header = UiMessages.ColumnRemovePlural, Tag = columns };
+            MenuItem removeItem = new() { Header = UiMessages.ColumnRemovePlural, Tag = columns };
             removeItem.Click += RemoveColumnMenuItems_Click;
             menu.Items.Add(removeItem);
 
@@ -493,9 +513,9 @@ namespace FileMappingEngine
         {
             if (sender is not MenuItem menuItem || menuItem.Tag is not DataGridColumn column)
                 return;
-            
+
             string? anchorId = column.Header?.ToString();
-            
+
             ColumnDirection direction = (string)menuItem.Header == UiMessages.ColumnAddBefore
                 ? ColumnDirection.Left
                 : ColumnDirection.Right;
@@ -553,7 +573,7 @@ namespace FileMappingEngine
 
             if (_selectedColumnName == null)
                 return;
-            
+
 
             try
             {
@@ -565,7 +585,8 @@ namespace FileMappingEngine
 
                 RenameColumnOverlay.Visibility = Visibility.Collapsed;
             }
-            catch (Exception) {
+            catch (Exception)
+            {
 
                 MessageBox.Show(string.Format(UiMessages.Fail_rename, UiTerms.Column), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -732,6 +753,80 @@ namespace FileMappingEngine
         private void CancelDataType_Click(object sender, RoutedEventArgs e)
         {
             ChangeDataTypeOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private DataTable CreateCalculationTable()
+        {
+            var table = new DataTable();
+
+            for (int i = 0; i < dataGrid.Columns.Count; i++)
+            {
+                table.Columns.Add($"Column{i}");
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                table.Rows.Add(table.NewRow());
+            }
+
+            return table;
+        }
+        private void SyncCalculationGridColumns()
+        {
+            calculationGrid.Columns.Clear();
+
+            foreach (DataGridColumn column in dataGrid.Columns)
+            {
+                var calculationColumn = new DataGridTextColumn
+                {
+                    Header = column.Header,
+                    Width = new DataGridLength(column.ActualWidth)
+                };
+
+                calculationGrid.Columns.Add(calculationColumn);
+            }
+        }
+        private void SyncCalculationGrid()
+        {
+            SyncCalculationGridColumns();
+
+            calculationGrid.ItemsSource = CreateCalculationTable().DefaultView;
+        }
+
+        private void DataGridColumn_SizeChanged(object? sender,SizeChangedEventArgs e)
+        {
+            if (sender is not DataGridColumn sourceColumn)
+                return;
+
+            int index = dataGrid.Columns.IndexOf(sourceColumn);
+
+            if (index < 0 || index >= calculationGrid.Columns.Count)
+                return;
+
+            calculationGrid.Columns[index].Width =
+                new DataGridLength(sourceColumn.ActualWidth);
+        }
+        private void DataGridColumn_ActualWidthChanged(object? sender, EventArgs e)
+        {
+            if (sender is not DataGridColumn sourceColumn)
+                return;
+
+            int index = dataGrid.Columns.IndexOf(sourceColumn);
+
+            if (index < 0 || index >= calculationGrid.Columns.Count)
+                return;
+
+            calculationGrid.Columns[index].Width =
+                new DataGridLength(sourceColumn.ActualWidth);
+        }
+
+        private void DataGridScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (calculationGridScrollViewer == null)
+                return;
+
+            calculationGridScrollViewer.ScrollToHorizontalOffset(
+                dataGridScrollViewer!.HorizontalOffset);
         }
     }
 }
