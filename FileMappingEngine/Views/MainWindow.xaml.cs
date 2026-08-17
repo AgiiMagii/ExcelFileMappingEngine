@@ -6,9 +6,11 @@ using FileMappingEngine.Views;
 using Microsoft.Win32;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Input;
 using static FileMappingEngine.Lib.Models.Enums;
 
@@ -755,32 +757,40 @@ namespace FileMappingEngine
             ChangeDataTypeOverlay.Visibility = Visibility.Collapsed;
         }
 
-        private DataTable CreateCalculationTable()
+        private List<CalculationRow> CreateCalculationRows()
         {
-            var table = new DataTable();
-
-            for (int i = 0; i < dataGrid.Columns.Count; i++)
-            {
-                table.Columns.Add($"Column{i}");
-            }
+            var rows = new List<CalculationRow>();
 
             for (int i = 0; i < 3; i++)
             {
-                table.Rows.Add(table.NewRow());
+                var row = new CalculationRow();
+
+                for (int j = 0; j < dataGrid.Columns.Count; j++)
+                {
+                    row.Cells.Add(new CalculationCell());
+                }
+
+                rows.Add(row);
             }
 
-            return table;
+            return rows;
         }
         private void SyncCalculationGridColumns()
         {
             calculationGrid.Columns.Clear();
 
-            foreach (DataGridColumn column in dataGrid.Columns)
+            for (int i = 0; i < dataGrid.Columns.Count; i++)
             {
+                DataGridColumn column = dataGrid.Columns[i];
+
                 var calculationColumn = new DataGridTextColumn
                 {
                     Header = column.Header,
-                    Width = new DataGridLength(column.ActualWidth)
+                    Width = new DataGridLength(column.ActualWidth),
+                    Binding = new Binding($"Cells[{i}].Value")
+                    {
+                        Mode = BindingMode.TwoWay
+                    }
                 };
 
                 calculationGrid.Columns.Add(calculationColumn);
@@ -790,22 +800,10 @@ namespace FileMappingEngine
         {
             SyncCalculationGridColumns();
 
-            calculationGrid.ItemsSource = CreateCalculationTable().DefaultView;
+            var rows = CreateCalculationRows();
+            calculationGrid.ItemsSource = rows;
         }
 
-        private void DataGridColumn_SizeChanged(object? sender,SizeChangedEventArgs e)
-        {
-            if (sender is not DataGridColumn sourceColumn)
-                return;
-
-            int index = dataGrid.Columns.IndexOf(sourceColumn);
-
-            if (index < 0 || index >= calculationGrid.Columns.Count)
-                return;
-
-            calculationGrid.Columns[index].Width =
-                new DataGridLength(sourceColumn.ActualWidth);
-        }
         private void DataGridColumn_ActualWidthChanged(object? sender, EventArgs e)
         {
             if (sender is not DataGridColumn sourceColumn)
@@ -827,6 +825,30 @@ namespace FileMappingEngine
 
             calculationGridScrollViewer.ScrollToHorizontalOffset(
                 dataGridScrollViewer!.HorizontalOffset);
+        }
+
+        private void CalculationGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            if (e.EditingElement is not TextBox textBox)
+                return;
+
+            string value = textBox.Text;
+
+            int rowIndex = e.Row.GetIndex();
+
+            int columnIndex = calculationGrid.Columns.IndexOf(e.Column);
+
+            if (columnIndex < 0)
+                return;
+
+            DataGridColumn sourceColumn = dataGrid.Columns[columnIndex];
+
+            string columnName = sourceColumn.Header?.ToString() ?? "";
+
+            
+
+            Debug.WriteLine(
+    $"Row: {rowIndex}, Column: {columnName}, Value: {value}");
         }
     }
 }

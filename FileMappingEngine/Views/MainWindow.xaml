@@ -39,7 +39,6 @@
               HeadersVisibility="Column"
               Margin="5"
               Sorting="OnDataGridSorting_Sorting"
-              SizeChanged="DataGridColumn_SizeChanged"
               AutoGeneratingColumn="DataGrid_AutoGeneratingColumn"/>
 
                 <DataGrid Name="calculationGrid"
@@ -47,7 +46,8 @@
               AutoGenerateColumns="False"
               HeadersVisibility="None"
               Margin="5,0,5,5"
-              CanUserAddRows="True"/>
+              CanUserAddRows="True"
+              CellEditEnding="CalculationGrid_CellEditEnding"/>
             </Grid>
         </DockPanel>
         <Grid x:Name="RenameColumnOverlay"
