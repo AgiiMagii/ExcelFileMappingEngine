@@ -290,33 +290,21 @@ namespace FileMappingEngine.Lib.Services
 
         public void SaveCalculationRowData(DataSession session, int rowIndex, string columnName, string value, IDataTableActionExecutor actionExecutor)
         {
-            var rows = session.Data?.CalculationData ?? new List<CalculationRow>();
-            rows.Add(new CalculationRow
+            SavePreviousState(session);
+
+            actionExecutor.ApplyCalculationRowData(session, rowIndex, columnName, value);
+
+            session.MappingSet.Steps.Add(new ActionStep
             {
-                Cells = new List<CalculationsCell>
+                ActionType = "CalculationRowData",
+                Order = session.MappingSet.Steps.Count + 1,
+                Parameters = new Dictionary<string, object>
                 {
-                    new CalculationsCell
-                    {
-                        ColumnName = columnName,
-                        RowIndex = rowIndex,
-                        Value = value
-                    }
+                    ["ColumnName"] = columnName,
+                    ["RowIndex"] = rowIndex,
+                    ["Value"] = value,
                 }
             });
-
-            //SavePreviousState(session);
-
-            //actionExecutor.ApplyCalculationRowData(session.Data, rows);
-
-            //session.MappingSet.Steps.Add(new ActionStep
-            //{
-            //    ActionType = "CalculationRowData",
-            //    Order = session.MappingSet.Steps.Count + 1,
-            //    Parameters = new Dictionary<string, object>
-            //    {
-            //        ["Rows"] = rows
-            //    }
-            //});
         }
 
         public List<CalculationRow> GetCalculationCellData(DataSession session)

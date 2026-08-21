@@ -15,6 +15,6 @@ namespace FileMappingEngine.Lib.Interfaces
         void RenameColumn(DataState dataState, string oldName, string newName);
         void SortData(DataState dataState, string columnName, bool ascending);
         void ApplyFormulaToColumn(DataState dataState, string columnName, string formula);
-        
+        void ApplyCalculationRowData(DataSession session, int rowIndex, string columnName, string value);
     }
 }

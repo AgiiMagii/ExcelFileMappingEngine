@@ -181,5 +181,22 @@ namespace FileMappingEngine.Lib.Services
         {
             throw new NotImplementedException();
         }
+
+        public void ApplyCalculationRowData(DataSession session, int rowIndex, string columnName, string value)
+        {
+            var rows = session.Data?.CalculationData ?? new List<CalculationRow>();
+            rows.Add(new CalculationRow
+            {
+                Cells = new List<CalculationsCell>
+                {
+                    new CalculationsCell
+                    {
+                        ColumnName = columnName,
+                        RowIndex = rowIndex,
+                        Value = value
+                    }
+                }
+            });
+        }
     }
 }

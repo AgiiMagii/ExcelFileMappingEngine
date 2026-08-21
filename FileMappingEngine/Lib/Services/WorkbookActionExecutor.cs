@@ -156,5 +156,10 @@ namespace FileMappingEngine.Lib.Services
                 }
             }
         }
+
+        public void ApplyCalculationRowData(DataSession session, int rowIndex, string columnName, string value)
+        {
+            throw new NotImplementedException("ApplyCalculationRowData needs to be implemented");
+        }
     }
 }
