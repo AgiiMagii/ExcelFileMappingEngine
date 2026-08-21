@@ -1,4 +1,5 @@
-﻿using FileMappingEngine.Lib;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using FileMappingEngine.Lib;
 using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Models;
 using FileMappingEngine.Resources;
@@ -137,7 +138,8 @@ namespace FileMappingEngine
 
             SyncSort();
             SyncCalculationGrid();
-        }
+        
+       }
         private void SyncSort()
         {
             dataGrid.Items.SortDescriptions.Clear();
@@ -767,7 +769,7 @@ namespace FileMappingEngine
 
                 for (int j = 0; j < dataGrid.Columns.Count; j++)
                 {
-                    row.Cells.Add(new CalculationCell());
+                    row.Cells.Add(new CalculationsCell());
                 }
 
                 rows.Add(row);
@@ -801,6 +803,26 @@ namespace FileMappingEngine
             SyncCalculationGridColumns();
 
             var rows = CreateCalculationRows();
+            List<CalculationRow> calcRows = appManager.GetCalculationCellData();
+            if (calcRows.Count > 0)
+            {
+                for (int i = 0; i < calcRows.Count && i < rows.Count; i++)
+                {
+                    foreach (CalculationRow row in calcRows)
+                    {
+                        foreach (CalculationsCell cell in row.Cells)
+                        {
+                            int rowIndex = (int)cell.RowIndex;
+
+                            int columnIndex = dataGrid.Columns
+                                .IndexOf(dataGrid.Columns.FirstOrDefault(c => c.Header?.ToString() == cell.ColumnName));
+
+                            rows[rowIndex].Cells[columnIndex].Value = cell.Value;
+                        }
+                    }
+                }
+            }
+
             calculationGrid.ItemsSource = rows;
         }
 
@@ -845,10 +867,7 @@ namespace FileMappingEngine
 
             string columnName = sourceColumn.Header?.ToString() ?? "";
 
-            
-
-            Debug.WriteLine(
-    $"Row: {rowIndex}, Column: {columnName}, Value: {value}");
+            appManager.SaveCalculationRowData(rowIndex, columnName, value);
         }
     }
 }

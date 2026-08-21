@@ -169,7 +169,7 @@ namespace FileMappingEngine.Lib
                     Id = col.ColumnName,
                     Name = col.ColumnName,
                     Index = index,
-                    
+
                 })];
         }
 
@@ -196,6 +196,16 @@ namespace FileMappingEngine.Lib
             Type systemType = DataHelper.GetSystemType(dataType);
 
             _dataService.SetColumnDataType(Session, columnName, systemType);
+        }
+
+        public List<CalculationRow> GetCalculationCellData()
+        {
+            return _dataService.GetCalculationCellData(Session);
+        }
+
+        public void SaveCalculationRowData(int rowIndex, string columnName, string value)
+        {
+            _dataService.SaveCalculationRowData(Session, rowIndex, columnName, value, _actionExecutor);
         }
     }
 }

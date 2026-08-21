@@ -7,6 +7,6 @@ namespace FileMappingEngine.Lib.Models
 {
     public class CalculationRow
     {
-        public List<CalculationCell> Cells { get; set; } = new();
+        public List<CalculationsCell> Cells { get; set; } = new();
     }
 }

@@ -198,28 +198,6 @@ namespace FileMappingEngine.Lib.Services
                 }
             });
         }
-        //public void SetColumnDataTypeCore(DataState dataState, string columnName, Type dataType)
-        //{
-        //    var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
-        //    var worksheet = dataState.Workbook.Worksheet(1);
-
-        //    var columnCells = worksheet
-        //        .Column(columnAddress.ColumnNumber)
-        //        .CellsUsed()
-        //        .Where(c => c.Address.RowNumber > dataState.HeaderRowIndex);
-
-        //    foreach (var cell in columnCells)
-        //    {
-        //        if (dataType == typeof(string))
-        //        {
-        //            cell.Style.NumberFormat.Format = "@";
-        //        }
-        //        else
-        //        {
-        //            cell.Style.NumberFormat.Format = "General";
-        //        }
-        //    }
-        //}
 
         private void SavePreviousState(DataSession session)
         {
@@ -263,42 +241,6 @@ namespace FileMappingEngine.Lib.Services
             }
         }
 
-        private string GenerateColumnName(DataState dataState)
-        {
-            if (dataState.CurrentData == null)
-                throw new InvalidOperationException("No current data loaded.");
-
-            string baseName = "NewColumn";
-            string name;
-
-            int suffix = dataState.CurrentData.Columns.Count + 1;
-
-            do
-            {
-                name = $"{baseName}{suffix}";
-                suffix++;
-            }
-            while (dataState.CurrentData.Columns.Contains(name));
-
-            return name;
-        }
-
-        private int CalculateColumnIndex(DataState dataState, string anchorId, ColumnDirection direction)
-        {
-            if (dataState.CurrentData == null)
-                throw new InvalidOperationException("No current data loaded.");
-
-            int anchorIndex = dataState.CurrentData.Columns.IndexOf(anchorId);
-            if (anchorIndex == -1)
-                throw new ArgumentException($"Anchor column '{anchorId}' does not exist.");
-            return direction switch
-            {
-                ColumnDirection.Left => anchorIndex,
-                ColumnDirection.Right => anchorIndex + 1,
-                _ => throw new ArgumentException("Direction must be 'left' or 'right'.")
-            };
-        }
-
         public bool IsColumnNameTaken(DataState dataState, string columnName)
         {
             if (dataState.CurrentData == null)
@@ -337,44 +279,6 @@ namespace FileMappingEngine.Lib.Services
                 }
             });
         }
-        //public void ApplyFormulaToColumnCore(DataState dataState, string columnName, string formula)
-        //{
-        //    if (dataState == null || dataState.CurrentData == null)
-        //        throw new InvalidOperationException("No file loaded.");
-
-        //    if (!dataState.CurrentData.Columns.Contains(columnName))
-        //        throw new ArgumentException(
-        //            $"Column '{columnName}' does not exist.");
-
-        //    var tokens = FormulaService.Tokenize(formula);
-        //    var formulaTree = FormulaService.Parse(tokens);
-
-        //    ApplyFormula(
-        //        dataState,
-        //        columnName,
-        //        formulaTree);
-
-        //    var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
-        //    var excelFormula = FormulaService.ConvertToExcelFormula(formula, dataState);
-        //    var dataRange = ExcelHelper.GetDataRangeForColumn(dataState.Workbook.Worksheet(1), dataState.HeaderRowIndex, columnAddress);
-        //    var rows = dataRange.Columns().FirstOrDefault()?.Cells() ?? Enumerable.Empty<IXLCell>();
-        //    foreach ( var cell in rows )
-        //    {
-        //        formula = string.Format(excelFormula.Value, cell.Address.RowNumber);
-        //        cell.FormulaA1 = formula;
-        //    }
-        //}
-        private void ApplyFormula(DataState dataState, string targetColumn, FormulaNode formulaTree)
-        {
-            foreach (DataRow row in dataState.CurrentData.Rows)
-            {
-                decimal result = FormulaService.Evaluate(formulaTree, row);
-
-                row[targetColumn] = result;
-                //dataState.Workbook!.Worksheet(1).Cell(row.Table.Rows.IndexOf(row) + dataState.HeaderRowIndex + 1, ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook.Worksheet(1), dataState.HeaderRowIndex, targetColumn)?.ColumnNumber ?? 1).Value = result;
-                //SetColumnDataTypeCore(dataState, targetColumn, typeof(double));
-            }
-        }
 
         public void SetIsAppliedMappingFalse(DataState dataState)
         {
@@ -382,6 +286,47 @@ namespace FileMappingEngine.Lib.Services
                 throw new InvalidOperationException("No file loaded.");
 
             dataState.IsMappingApplied = false;
+        }
+
+        public void SaveCalculationRowData(DataSession session, int rowIndex, string columnName, string value, IDataTableActionExecutor actionExecutor)
+        {
+            var rows = session.Data?.CalculationData ?? new List<CalculationRow>();
+            rows.Add(new CalculationRow
+            {
+                Cells = new List<CalculationsCell>
+                {
+                    new CalculationsCell
+                    {
+                        ColumnName = columnName,
+                        RowIndex = rowIndex,
+                        Value = value
+                    }
+                }
+            });
+
+            //SavePreviousState(session);
+
+            //actionExecutor.ApplyCalculationRowData(session.Data, rows);
+
+            //session.MappingSet.Steps.Add(new ActionStep
+            //{
+            //    ActionType = "CalculationRowData",
+            //    Order = session.MappingSet.Steps.Count + 1,
+            //    Parameters = new Dictionary<string, object>
+            //    {
+            //        ["Rows"] = rows
+            //    }
+            //});
+        }
+
+        public List<CalculationRow> GetCalculationCellData(DataSession session)
+        {
+            if (session.Data == null || session.Data.CurrentData == null)
+                throw new InvalidOperationException("No data loaded.");
+
+            var rows = session.Data.CalculationData;
+
+            return rows;
         }
     }
 }
