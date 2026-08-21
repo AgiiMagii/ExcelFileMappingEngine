@@ -157,9 +157,22 @@ namespace FileMappingEngine.Lib.Services
             }
         }
 
-        public void ApplyCalculationRowData(DataSession session, int rowIndex, string columnName, string value)
+        public void ApplyCalculationRowData(DataSession session, int calculationsRowIndex, string columnName, string value)
         {
-            throw new NotImplementedException("ApplyCalculationRowData needs to be implemented");
+            int headerRowIndex = session.Data.HeaderRowIndex;
+            IXLWorksheet worksheet = session.Data.Workbook!
+                .Worksheet(1);
+
+            IXLAddress columnAddress =
+                ExcelHelper.GetColumnAddressByHeaderRow(
+                    worksheet,
+                    headerRowIndex,
+                    columnName);
+
+            int lastRow = worksheet.LastRowUsed().RowNumber();
+            int targetRow = calculationsRowIndex + lastRow + 1;
+
+            worksheet.Cell(targetRow, columnAddress?.ColumnNumber ?? 1).Value = value;
         }
     }
 }

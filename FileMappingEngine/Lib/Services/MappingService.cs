@@ -323,7 +323,13 @@ namespace FileMappingEngine.Lib.Services
                         actionExecutor.SetColumnDataType(session.Data, step.ColumnId, dataType);
                         break;
                     case "CalculationRowData":
-                        continue;
+                        if (step.Parameters == null)
+                            throw new InvalidOperationException("Parameters missing for CalculationRowData action.");
+                        string columnName = GetStringParameter(step, "ColumnName");
+                        int rowIndex = int.Parse(GetStringParameter(step, "RowIndex"));
+                        string cellValue = GetStringParameter(step, "Value");
+                        actionExecutor.ApplyCalculationRowData(session, rowIndex, columnName, cellValue);
+                        break;
                     default:
                         throw new InvalidOperationException($"Unknown action type: {step.ActionType}");
                 }
