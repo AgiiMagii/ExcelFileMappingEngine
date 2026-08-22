@@ -143,6 +143,7 @@ namespace FileMappingEngine.Lib.Helpers
             dataState?.CurrentData = dataTable;
             dataState?.FileDefinition = fileDefinition;
             dataState?.Workbook = workbook;
+            dataState?.CalculationStartRowIndex = CalculationStartRowIndex(workbook?.Worksheet(1));
         }
         private static string GetSafeColumnName(string rawName, int index, HashSet<string> usedNames)
         {
@@ -217,7 +218,7 @@ namespace FileMappingEngine.Lib.Helpers
         public static IXLRange GetDataRangeForColumn(IXLWorksheet worksheet, int headerRowIndex, IXLAddress columnAddress)
         {
             int firstDataRow = headerRowIndex + 1;
-            int lastRow = worksheet.LastRowUsed().RowNumber();
+            int lastRow = worksheet?.LastRowUsed()?.RowNumber() ?? 0;
 
             return worksheet.Range(
                 firstDataRow,
@@ -225,7 +226,12 @@ namespace FileMappingEngine.Lib.Helpers
                 lastRow,
                 columnAddress.ColumnNumber);
         }
-
+        public static int CalculationStartRowIndex(IXLWorksheet worksheet)
+        {
+            int lastRow = worksheet?.LastRowUsed()?.RowNumber() ?? 0;
+            int calculationStartRowIndex = lastRow + 1;
+            return calculationStartRowIndex;
+        }
     }
 }
 

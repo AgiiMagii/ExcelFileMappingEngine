@@ -169,8 +169,8 @@ namespace FileMappingEngine.Lib.Services
                     headerRowIndex,
                     columnName);
 
-            int lastRow = worksheet.LastRowUsed().RowNumber();
-            int targetRow = calculationsRowIndex + lastRow + 1;
+            
+            int targetRow = calculationsRowIndex + session.Data.CalculationStartRowIndex;
 
             worksheet.Cell(targetRow, columnAddress?.ColumnNumber ?? 1).Value = value;
         }

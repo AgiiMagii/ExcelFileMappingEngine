@@ -9,6 +9,7 @@ namespace FileMappingEngine.Lib.Models
     public class DataState
     {
         public int HeaderRowIndex { get; set; } = 1;
+        public int CalculationStartRowIndex { get; set; }
         public string? SortedColumn { get; set; }
         public bool? SortAscending { get; set; }
         public bool IsMappingApplied { get; set; } = false;

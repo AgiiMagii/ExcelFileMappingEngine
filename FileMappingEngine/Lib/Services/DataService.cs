@@ -74,7 +74,7 @@ namespace FileMappingEngine.Lib.Services
                 Order = session.MappingSet.Steps.Count + 1
             });
         }
-        
+
         public void RemoveColumns(DataSession session, IEnumerable<string> columnNames, IDataTableActionExecutor actionExecutor)
         {
             if (session.Data == null)
@@ -316,5 +316,13 @@ namespace FileMappingEngine.Lib.Services
 
             return rows;
         }
+
+        //public void SetCalculationStartRowIndex(DataSession session)
+        //{
+        //    if (session.Data == null || session.Data.Workbook == null)
+        //        throw new InvalidOperationException("No data loaded.");
+
+        //    session.Data.CalculationStartRowIndex = ExcelHelper.CalculationStartRowIndex(session.Data.Workbook.Worksheet(1));
+        //}
     }
 }
