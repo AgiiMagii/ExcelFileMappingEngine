@@ -28,14 +28,11 @@ namespace FileMappingEngine.Lib.Services
             this.mappingRepository = mappingRepository;
             this.fileRepository = fileRepository;
         }
-        public async Task SaveMappingSet(DataSession session, string fileDefName, string mappingName)
+
+        public void WriteSortMapping(DataSession session)
         {
-            if (session.File == null)
-                throw new InvalidOperationException("No file loaded.");
             if (session.Data == null)
                 throw new InvalidOperationException("Current data not available.");
-            
-
             if (session.Data.SortedColumn != null &&
                 session.Data.SortAscending.HasValue)
             {
@@ -50,6 +47,15 @@ namespace FileMappingEngine.Lib.Services
                     }
                 });
             }
+        }
+        public async Task SaveMappingSet(DataSession session, string fileDefName, string mappingName)
+        {
+            if (session.File == null)
+                throw new InvalidOperationException("No file loaded.");
+            if (session.Data == null)
+                throw new InvalidOperationException("Current data not available.");
+
+            WriteSortMapping(session);
 
             if (session.Data.FileDefinition?.Id  == null)
             {
@@ -294,7 +300,7 @@ namespace FileMappingEngine.Lib.Services
                             throw new InvalidOperationException("Parameters missing for Sort action.");
                         if (step.ColumnId == null)
                             throw new InvalidOperationException("Column ID missing for Sort action.");
-                        bool ascending = ((JsonElement)step.Parameters["Ascending"]).GetBoolean();
+                        bool ascending = step.Parameters["Ascending"].GetType() == typeof(JsonElement) ? ((JsonElement)step.Parameters["Ascending"]).GetBoolean() : Convert.ToBoolean(step.Parameters["Ascending"]);
                         actionExecutor.SortData(session.Data, step.ColumnId, ascending);
                         break;
                     case "Formula":

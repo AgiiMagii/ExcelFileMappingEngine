@@ -98,6 +98,8 @@ namespace FileMappingEngine.Lib
             if (Session.Data == null || Session.Data.Workbook == null)
                 throw new InvalidOperationException("No workbook available to save.");
 
+            _mappingService.WriteSortMapping(Session);
+
             if (_mappingService.TransformWorkbook(Session.Data.Workbook, Session, _workbookActionExecutor))
                 _fileService.SaveFile(Session.Data.Workbook, filePath);
         }

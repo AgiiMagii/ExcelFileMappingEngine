@@ -166,41 +166,6 @@ namespace FileMappingEngine.Lib.Helpers
 
         }
 
-        public static void SaveFile(string filePath, DataTable dt, List<List<string>> ignoredRows = null)
-        {
-            ignoredRows ??= [];
-
-            using XLWorkbook workbook = new();
-            var ws = workbook.Worksheets.Add("Sheet1");
-
-            int currentRow = 1;
-
-            if (ignoredRows != null)
-            {
-                foreach (var row in ignoredRows)
-                {
-                    for (int c = 0; c < row.Count; c++)
-                        ws.Cell(currentRow, c + 1).Value = row[c];
-                    currentRow++;
-                }
-            }
-
-            for (int c = 0; c < dt.Columns.Count; c++)
-                ws.Cell(currentRow, c + 1).Value = dt.Columns[c].ColumnName;
-            currentRow++;
-
-            foreach (DataRow dr in dt.Rows)
-            {
-                for (int c = 0; c < dt.Columns.Count; c++)
-                    DataHelper.SetCellValue(ws.Cell(currentRow, c + 1), dr[c], dt.Columns[c].DataType);
-                currentRow++;
-            }
-
-            ws.Columns().AdjustToContents();
-
-            workbook.SaveAs(filePath);
-        }
-
         public static void SaveExcelFile(string filePath, IXLWorkbook workbook)
         {
             workbook.SaveAs(filePath);
