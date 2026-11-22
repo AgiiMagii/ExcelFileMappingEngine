@@ -35,7 +35,7 @@
                 <DataGrid Name="dataGrid"
               Grid.Row="0"
               AutoGenerateColumns="True"
-              CanUserSortColumns="True"
+              CanUserSortColumns="False"
               HeadersVisibility="Column"
               Margin="5"
               Sorting="OnDataGridSorting_Sorting"
@@ -47,7 +47,8 @@
               HeadersVisibility="None"
               Margin="5,0,5,5"
               CanUserAddRows="True"
-              CellEditEnding="CalculationGrid_CellEditEnding"/>
+              CellEditEnding="CalculationGrid_CellEditEnding"
+              ContextMenuOpening="CalculationGrid_ContextMenuOpening"/>
             </Grid>
         </DockPanel>
         <Grid x:Name="RenameColumnOverlay"

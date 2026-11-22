@@ -288,7 +288,7 @@ namespace FileMappingEngine.Lib.Services
             dataState.IsMappingApplied = false;
         }
 
-        public void SaveCalculationRowData(DataSession session, int rowIndex, string columnName, string value, IDataTableActionExecutor actionExecutor)
+        public void SaveCalculationRowData(DataSession session, int rowIndex, string columnName, string value, FormulaFunction? formulaFunction, IDataTableActionExecutor actionExecutor)
         {
             SavePreviousState(session);
 
@@ -303,6 +303,7 @@ namespace FileMappingEngine.Lib.Services
                     ["ColumnName"] = columnName,
                     ["RowIndex"] = rowIndex,
                     ["Value"] = value,
+                    ["FormulaFunction"] = formulaFunction
                 }
             });
         }
@@ -315,6 +316,47 @@ namespace FileMappingEngine.Lib.Services
             var rows = session.Data.CalculationData;
 
             return rows;
+        }
+
+        public string CalculateSumForColumn(DataSession session, string columnName, List<object?> values)
+        {
+            if (session.Data == null)
+                throw new InvalidOperationException("No file loaded.");
+            if (session.Data.CurrentData == null)
+                throw new InvalidOperationException("Current data not available.");
+            if (!session.Data.CurrentData.Columns.Contains(columnName))
+                throw new ArgumentException($"Column '{columnName}' does not exist.");
+            decimal sum = 0;
+            foreach (var value in values)
+            {
+                if (value != null && decimal.TryParse(value.ToString(), out decimal numericValue))
+                {
+                    sum += numericValue;
+                }
+            }
+            return sum.ToString();
+        }
+
+        public (int? First, int? Last) GetDataRowRange(DataSession session)
+        {
+            if (session.Data == null || session.Data.CurrentData == null)
+                throw new InvalidOperationException("No data loaded.");
+            var dataTable = session.Data.CurrentData;
+            int headerRowIndex = session.Data.HeaderRowIndex;
+            int? firstDataRowIndex = null;
+            int? lastDataRowIndex = null;
+            for (int i = headerRowIndex + 1; i < dataTable.Rows.Count; i++)
+            {
+                var row = dataTable.Rows[i];
+                bool hasData = row.ItemArray.Any(item => item != DBNull.Value && item != null && !string.IsNullOrWhiteSpace(item.ToString()));
+                if (hasData)
+                {
+                    if (firstDataRowIndex == null)
+                        firstDataRowIndex = i;
+                    lastDataRowIndex = i;
+                }
+            }
+            return (firstDataRowIndex, lastDataRowIndex);
         }
 
         //public void SetCalculationStartRowIndex(DataSession session)

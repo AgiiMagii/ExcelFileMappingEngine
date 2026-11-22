@@ -74,5 +74,17 @@ namespace FileMappingEngine.Lib.Helpers
 
             return null;
         }
+        public static T? FindParent<T>(DependencyObject? element) where T : DependencyObject
+        {
+            while (element != null)
+            {
+                if (element is T result)
+                    return result;
+
+                element = VisualTreeHelper.GetParent(element);
+            }
+
+            return null;
+        }
     }
 }

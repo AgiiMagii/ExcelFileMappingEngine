@@ -13,6 +13,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using static FileMappingEngine.Lib.Models.Enums;
 
 namespace FileMappingEngine
@@ -138,8 +139,8 @@ namespace FileMappingEngine
 
             SyncSort();
             SyncCalculationGrid();
-        
-       }
+
+        }
         private void SyncSort()
         {
             dataGrid.Items.SortDescriptions.Clear();
@@ -464,6 +465,16 @@ namespace FileMappingEngine
             menu.Items.Add(removeItem);
 
             menu.Items.Add(new MenuItem { Header = "-" });
+
+            return menu;
+        }
+        private ContextMenu CreateCellContextMenu(DataGridCell cell)
+        {
+            ContextMenu menu = new();
+
+            MenuItem sum = new() { Header = UiMessages.ColumnDataSum, Tag = cell };
+            sum.Click += SumCellMenuItem_Click;
+            menu.Items.Add(sum);
 
             return menu;
         }
@@ -851,7 +862,7 @@ namespace FileMappingEngine
 
         private void CalculationGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
-            if (e.EditingElement is not TextBox textBox)
+            if (e.EditAction != DataGridEditAction.Commit || e.EditingElement is not TextBox textBox)
                 return;
 
             string value = textBox.Text;
@@ -867,7 +878,77 @@ namespace FileMappingEngine
 
             string columnName = sourceColumn.Header?.ToString() ?? "";
 
-            appManager.SaveCalculationRowData(rowIndex, columnName, value);
+            appManager.SaveCalculationRowData(rowIndex, columnName, value, null);
+        }
+
+        private void CalculationGrid_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            if (e.OriginalSource is not DependencyObject source)
+                return;
+
+            DataGridCell? cell = UiHelper.FindParent<DataGridCell>(source);
+
+            if (cell == null)
+                return;
+
+            cell.ContextMenu = CreateCellContextMenu(cell);
+        }
+
+        private void SumCellMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            calculationGrid.CancelEdit();
+
+            if (calculationGrid.CurrentCell.Column == null || dataGrid.Items.Count == 0)
+                return;
+
+            int columnIndex = calculationGrid.CurrentCell.Column.DisplayIndex;
+            string? columnName = calculationGrid.CurrentCell.Column.Header?.ToString();
+
+            if (columnIndex < 0 || columnIndex >= dataGrid.Columns.Count)
+                return;
+
+            DataGridColumn column = dataGrid.Columns[columnIndex];
+            string? path = column.SortMemberPath;
+
+            if (string.IsNullOrEmpty(path))
+                return;
+
+            List<object?> values = [];
+
+            // Read from the data source (not the visual cells), so virtualized/off-screen rows are included.
+            // Column header is not part of the data source, so only data values are collected.
+            if (dataGrid.ItemsSource is DataView dataView)
+            {
+                // DataTable.Rows includes all rows, regardless of filter or sort applied to the view.
+                DataTable? table = dataView.Table;
+                if (table is null)
+                    return;
+
+                foreach (DataRow row in table.Rows)
+                {
+                    values.Add(row[path] is DBNull ? null : row[path]);
+                }
+            }
+            else
+            {
+                foreach (object item in dataGrid.Items)
+                {
+                    if (item == CollectionView.NewItemPlaceholder)
+                        continue;
+
+                    if (item is DataRowView rowView)
+                    {
+                        values.Add(rowView[path] is DBNull ? null : rowView[path]);
+                    }
+                    else
+                    {
+                        values.Add(item.GetType().GetProperty(path)?.GetValue(item));
+                    }
+                }
+            }
+            string sum = appManager.CalculateSumForColumn(columnName ?? "", values);
+            appManager.SaveCalculationRowData(0, columnName ?? "", sum, FormulaFunction.Sum);
+            SyncCalculationGrid();
         }
     }
 }

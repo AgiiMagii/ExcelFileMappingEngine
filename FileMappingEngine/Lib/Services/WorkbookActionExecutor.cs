@@ -157,9 +157,11 @@ namespace FileMappingEngine.Lib.Services
             }
         }
 
-        public void ApplyCalculationRowData(DataSession session, int calculationsRowIndex, string columnName, string value)
+        public void ApplyCalculationRowData(DataSession session, int calculationsRowIndex, string columnName, string value, FormulaFunction formulaFunction)
         {
             int headerRowIndex = session.Data.HeaderRowIndex;
+
+            
             IXLWorksheet worksheet = session.Data.Workbook!
                 .Worksheet(1);
 
@@ -168,11 +170,23 @@ namespace FileMappingEngine.Lib.Services
                     worksheet,
                     headerRowIndex,
                     columnName);
+            IXLRange dataRange =
+                ExcelHelper.GetDataRangeForColumn(
+                    worksheet,
+                    headerRowIndex,
+                    columnAddress);
 
-            
             int targetRow = calculationsRowIndex + session.Data.CalculationStartRowIndex;
-
-            worksheet.Cell(targetRow, columnAddress?.ColumnNumber ?? 1).Value = value;
+            if (formulaFunction == FormulaFunction.Sum)
+            {
+                worksheet.Cell(targetRow, columnAddress?.ColumnNumber ?? 1).FormulaA1 = $"SUM({columnAddress?.ColumnLetter}{headerRowIndex + 1}:{columnAddress?.ColumnLetter}{targetRow - 1})";
+                worksheet.Cell(targetRow, columnAddress?.ColumnNumber ?? 1).Style.NumberFormat.Format = "General";
+            }
+            else
+            {
+                worksheet.Cell(targetRow, columnAddress?.ColumnNumber ?? 1).Value = value;
+                worksheet.Cell(targetRow, columnAddress?.ColumnNumber ?? 1).Style.NumberFormat.Format = "@";
+            }
         }
     }
 }

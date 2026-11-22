@@ -186,4 +186,7 @@
   <data name="Fail_empty" xml:space="preserve">
     <value>Could not load an empty {0}!</value>
   </data>
+  <data name="ColumnDataSum" xml:space="preserve">
+    <value>SUM</value>
+  </data>
 </root>

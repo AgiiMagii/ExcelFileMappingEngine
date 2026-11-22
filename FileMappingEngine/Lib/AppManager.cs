@@ -205,9 +205,14 @@ namespace FileMappingEngine.Lib
             return _dataService.GetCalculationCellData(Session);
         }
 
-        public void SaveCalculationRowData(int rowIndex, string columnName, string value)
+        public void SaveCalculationRowData(int rowIndex, string columnName, string value, FormulaFunction? formulaFunction)
         {
-            _dataService.SaveCalculationRowData(Session, rowIndex, columnName, value, _actionExecutor);
+            _dataService.SaveCalculationRowData(Session, rowIndex, columnName, value, formulaFunction, _actionExecutor);
+        }
+
+        public string CalculateSumForColumn(string columnName, List<object?> values)
+        {
+            return _dataService.CalculateSumForColumn(Session, columnName, values);
         }
     }
 }

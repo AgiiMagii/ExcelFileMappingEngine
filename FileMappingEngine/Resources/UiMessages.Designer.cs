@@ -79,6 +79,15 @@ namespace FileMappingEngine.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to SUM.
+        /// </summary>
+        internal static string ColumnDataSum {
+            get {
+                return ResourceManager.GetString("ColumnDataSum", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Define formula.
         /// </summary>
         internal static string ColumnFormula {

@@ -334,7 +334,12 @@ namespace FileMappingEngine.Lib.Services
                         string columnName = GetStringParameter(step, "ColumnName");
                         int rowIndex = int.Parse(GetStringParameter(step, "RowIndex"));
                         string cellValue = GetStringParameter(step, "Value");
-                        actionExecutor.ApplyCalculationRowData(session, rowIndex, columnName, cellValue);
+                        string formulaFunctionStr = GetStringParameter(step, "FormulaFunction");
+
+                        if (!Enum.TryParse(formulaFunctionStr, out FormulaFunction formulaFunction))
+                            throw new InvalidOperationException($"Invalid FormulaFunction: {formulaFunctionStr}");
+    
+                        actionExecutor.ApplyCalculationRowData(session, rowIndex, columnName, cellValue, formulaFunction);
                         break;
                     default:
                         throw new InvalidOperationException($"Unknown action type: {step.ActionType}");

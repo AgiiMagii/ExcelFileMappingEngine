@@ -242,7 +242,7 @@ namespace FileMappingEngine.Lib.Services
                 Function = functionToken.Value.ToUpper() switch
                 {
                     "ROUND" => FormulaFunction.Round,
-
+                    "SUM" => FormulaFunction.Sum,
                     _ => throw new Exception(
                         $"Unknown function {functionToken.Value}")
                 }
@@ -321,7 +321,7 @@ namespace FileMappingEngine.Lib.Services
             return node.Function switch
             {
                 FormulaFunction.Round => EvaluateRound(node, row),
-
+                FormulaFunction.Sum => EvaluateSum(node, row),
                 _ => throw new InvalidOperationException(
                     $"Unsupported function {node.Function}")
             };
@@ -336,6 +336,18 @@ namespace FileMappingEngine.Lib.Services
             int decimals = (int)Evaluate(node.Arguments[1], row);
 
             return Math.Round(value, decimals, MidpointRounding.AwayFromZero);
+        }
+        private static decimal EvaluateSum(FormulaNode node, DataRow row)
+        {
+            if (node.Arguments.Count < 1)
+                throw new InvalidOperationException("SUM requires at least 1 argument.");
+
+            decimal sum = 0m;
+            foreach (var arg in node.Arguments)
+            {
+                sum += Evaluate(arg, row);
+            }
+            return sum;
         }
         private static decimal GetDecimalValue(DataRow row, string columnName)
         {
@@ -362,6 +374,16 @@ namespace FileMappingEngine.Lib.Services
 
             });
             
+            excelFormula.Value = convertedFormula;
+            return excelFormula;
+        }
+        
+        public static XLFormula ConvertRangeToExcelFormula(int firstDataRowIndex, int lastDataRowIndex, DataState dataState)
+        {
+            var excelFormula = new XLFormula();
+
+            string convertedFormula = $"SUM({firstDataRowIndex}:{lastDataRowIndex})";
+
             excelFormula.Value = convertedFormula;
             return excelFormula;
         }
