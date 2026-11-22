@@ -742,14 +742,16 @@ namespace FileMappingEngine
             }
 
             _allowSorting = false;
+            e.Handled = true;
 
-            string columnName = e.Column.Header.ToString() ?? "";
+            string columnName = e.Column.Header?.ToString() ?? "";
 
             bool ascending =
                 e.Column.SortDirection != ListSortDirection.Ascending;
             try
             {
                 appManager.SortData(columnName, ascending);
+                ReloadGrid();
             }
             catch (Exception)
             {

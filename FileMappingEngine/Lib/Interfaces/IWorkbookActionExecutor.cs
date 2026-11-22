@@ -12,6 +12,6 @@ namespace FileMappingEngine.Lib.Interfaces
         void AddColumn(DataState dataState, ColumnDirection direction, string anchorId, string? newName);
         void MergeColumns(DataSession session, ColumnReference first, ColumnReference second, string separator, string? resultColumnName);
         void SetColumnDataType(DataState dataState, string columnName, Type dataType);
-        void ApplyCalculationRowData(DataSession session, int rowIndex, string columnName, string value, FormulaFunction formulaFunction);
+        void ApplyCalculationRowData(DataSession session, int rowIndex, string columnName, string value, FormulaFunction? formulaFunction);
     }
 }

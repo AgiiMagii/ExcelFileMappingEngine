@@ -157,7 +157,7 @@ namespace FileMappingEngine.Lib.Services
             }
         }
 
-        public void ApplyCalculationRowData(DataSession session, int calculationsRowIndex, string columnName, string value, FormulaFunction formulaFunction)
+        public void ApplyCalculationRowData(DataSession session, int calculationsRowIndex, string columnName, string value, FormulaFunction? formulaFunction)
         {
             int headerRowIndex = session.Data.HeaderRowIndex;
 

@@ -303,7 +303,7 @@ namespace FileMappingEngine.Lib.Services
                     ["ColumnName"] = columnName,
                     ["RowIndex"] = rowIndex,
                     ["Value"] = value,
-                    ["FormulaFunction"] = formulaFunction
+                    ["FormulaFunction"] = formulaFunction.HasValue ? formulaFunction.Value.ToString() : null
                 }
             });
         }

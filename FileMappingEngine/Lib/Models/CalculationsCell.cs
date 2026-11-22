@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using static FileMappingEngine.Lib.Models.Enums;
 
 namespace FileMappingEngine.Lib.Models
 {
@@ -9,5 +10,6 @@ namespace FileMappingEngine.Lib.Models
         public string? ColumnName { get; set; }
         public int RowIndex { get; set; }
         public string? Value { get; set; }
+        public FormulaFunction? FormulaFunction { get; set; }
     }
 }
