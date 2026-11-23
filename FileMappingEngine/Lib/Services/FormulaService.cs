@@ -378,13 +378,15 @@ namespace FileMappingEngine.Lib.Services
             return excelFormula;
         }
         
-        public static XLFormula ConvertRangeToExcelFormula(int firstDataRowIndex, int lastDataRowIndex, DataState dataState)
+        public static XLFormula ConvertRangeToExcelFormula(IXLRange range, FormulaFunction? formulaFunction)
         {
             var excelFormula = new XLFormula();
 
-            string convertedFormula = $"SUM({firstDataRowIndex}:{lastDataRowIndex})";
+            if (formulaFunction == FormulaFunction.Sum)
+            {
+                excelFormula.Value = $"SUM({range.FirstCell().Address}:{range.LastCell().Address})";
+            }
 
-            excelFormula.Value = convertedFormula;
             return excelFormula;
         }
     }

@@ -903,6 +903,7 @@ namespace FileMappingEngine
             if (calculationGrid.CurrentCell.Column == null || dataGrid.Items.Count == 0)
                 return;
 
+            int rowIndex = calculationGrid.CurrentCell.Item is CalculationRow calcrow ? calculationGrid.Items.IndexOf(calcrow) : 0;
             int columnIndex = calculationGrid.CurrentCell.Column.DisplayIndex;
             string? columnName = calculationGrid.CurrentCell.Column.Header?.ToString();
 
@@ -949,7 +950,7 @@ namespace FileMappingEngine
                 }
             }
             string sum = appManager.CalculateSumForColumn(columnName ?? "", values);
-            appManager.SaveCalculationRowData(0, columnName ?? "", sum, FormulaFunction.Sum);
+            appManager.SaveCalculationRowData(rowIndex, columnName ?? "", sum, FormulaFunction.Sum);
             SyncCalculationGrid();
         }
     }

@@ -95,8 +95,24 @@ namespace FileMappingEngine.Lib.Services
 
         public void SortData(DataState dataState, string columnName, bool ascending)
         {
-            var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
-            var range = ExcelHelper.GetDataRangeAfterHeader(dataState.Workbook.Worksheet(1), dataState.HeaderRowIndex);
+            var worksheet = dataState.Workbook!.Worksheet(1);
+            var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(worksheet, dataState.HeaderRowIndex, columnName);
+            var range = ExcelHelper.GetDataRangeAfterHeader(worksheet, dataState.HeaderRowIndex);
+
+            // Exclude trailing calculation rows (e.g. totals) from sorting.
+            var calculationRowCount = dataState.CalculationData?.Count ?? 0;
+            if (calculationRowCount > 0)
+            {
+                var dataRowCount = range.RowCount() - calculationRowCount;
+                if (dataRowCount < 2)
+                {
+                    return;
+                }
+
+                range = range.FirstRow().RowBelow(0).Worksheet.Range(
+                    range.FirstCell().Address,
+                    range.Cell(dataRowCount, range.ColumnCount()).Address);
+            }
 
             range.Sort(columnAddress?.ColumnNumber ?? 1, ascending ? XLSortOrder.Ascending : XLSortOrder.Descending);
         }
@@ -177,10 +193,13 @@ namespace FileMappingEngine.Lib.Services
                     columnAddress);
 
             int targetRow = calculationsRowIndex + session.Data.CalculationStartRowIndex;
-            if (formulaFunction == FormulaFunction.Sum)
+
+            if (formulaFunction != null)
             {
-                worksheet.Cell(targetRow, columnAddress?.ColumnNumber ?? 1).FormulaA1 = $"SUM({columnAddress?.ColumnLetter}{headerRowIndex + 1}:{columnAddress?.ColumnLetter}{targetRow - 1})";
-                worksheet.Cell(targetRow, columnAddress?.ColumnNumber ?? 1).Style.NumberFormat.Format = "General";
+
+                XLFormula xLFormula = FormulaService.ConvertRangeToExcelFormula(dataRange, formulaFunction);
+
+                worksheet.Cell(targetRow, columnAddress?.ColumnNumber ?? 1).FormulaA1 = xLFormula.Value;
             }
             else
             {
