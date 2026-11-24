@@ -9,6 +9,7 @@ using System.Windows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using FileMappingEngine.Lib.Interfaces;
+using FileMappingEngine.Lib.Sessions;
 
 namespace FileMappingEngine
 {
@@ -46,6 +47,7 @@ namespace FileMappingEngine
             services.AddSingleton<MappingService>();
             services.AddSingleton<MappingRepository>();
             services.AddSingleton<FileRepository>();
+            services.AddSingleton<ISessionStore, InMemorySessionStore>();
             services.AddSingleton<AppManager>();
             services.AddSingleton<IDataTableActionExecutor, DataTableActionExecutor>();
             services.AddSingleton<IWorkbookActionExecutor, WorkbookActionExecutor>();

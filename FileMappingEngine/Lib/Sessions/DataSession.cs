@@ -11,5 +11,7 @@ namespace FileMappingEngine.Lib.Sessions
         public FileState? File { get; set; }
         public DataState? Data { get; set; }
         public MappingSet MappingSet { get; set; } = new();
+        public Guid SessionId { get; set; }
+        public string OwnerId { get; set; } = string.Empty;
     }
 }

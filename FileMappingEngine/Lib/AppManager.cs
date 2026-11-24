@@ -17,7 +17,11 @@ namespace FileMappingEngine.Lib
         private readonly MappingRepository _mappingRepository;
         private readonly IDataTableActionExecutor _actionExecutor;
         private readonly IWorkbookActionExecutor _workbookActionExecutor;
-        private DataSession? CurrentSession { get; set; }
+        private readonly ISessionStore _sessionStore;
+        private const string LocalOwnerId = "local";
+        private Guid? _currentSessionId;
+        private DataSession? CurrentSession =>
+            _currentSessionId == null ? null : _sessionStore.Get(_currentSessionId.Value, LocalOwnerId);
 
         public DataSession Session => CurrentSession ?? throw new InvalidOperationException("No file loaded.");
         public DataTable? CurrentData => DataState.CurrentData;
@@ -29,8 +33,9 @@ namespace FileMappingEngine.Lib
         public bool HasFile => CurrentSession != null;
         public bool IsMappingApplied => DataState.IsMappingApplied;
 
-        public AppManager(FileService fileService, DataService dataService, MappingRepository mappingRepository, MappingService mappingService, IDataTableActionExecutor actionExecutor, IWorkbookActionExecutor workbookActionExecutor)
+        public AppManager(FileService fileService, DataService dataService, MappingRepository mappingRepository, MappingService mappingService, IDataTableActionExecutor actionExecutor, IWorkbookActionExecutor workbookActionExecutor, ISessionStore sessionStore)
         {
+            _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
             _fileService = fileService ?? throw new ArgumentNullException(nameof(fileService));
             _dataService = dataService ?? throw new ArgumentNullException(nameof(dataService));
             _mappingRepository = mappingRepository ?? throw new ArgumentNullException(nameof(mappingRepository));
@@ -41,14 +46,21 @@ namespace FileMappingEngine.Lib
 
         public async Task OpenFile(string path, int? headerRowIndex)
         {
-            var session = await _fileService.OpenFile(path, headerRowIndex);
+            var opened = await _fileService.OpenFile(path, headerRowIndex);
 
-            if (session == null)
+            if (opened == null)
                 throw new InvalidOperationException("Failed to open the file.");
-            if (session.Data == null)
+            if (opened.Data == null)
                 throw new InvalidOperationException("Data state is not initialized.");
 
-            CurrentSession = session;
+            if (_currentSessionId != null)
+                _sessionStore.Remove(_currentSessionId.Value);
+
+            var session = _sessionStore.Create(LocalOwnerId);
+            session.File = opened.File;
+            session.Data = opened.Data;
+            session.MappingSet = opened.MappingSet;
+            _currentSessionId = session.SessionId;
 
             if (session.Data.FileDefinition?.Hash != null)
             {
@@ -73,7 +85,8 @@ namespace FileMappingEngine.Lib
         public void CloseCurrentFile()
         {
             _fileService.CloseCurrentFile(Session);
-            CurrentSession = null;
+            _sessionStore.Remove(Session.SessionId);
+            _currentSessionId = null;
         }
 
         public async Task<List<MappingSet>> GetAvailableMappings(DataSession session)
