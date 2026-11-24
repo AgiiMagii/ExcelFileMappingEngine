@@ -215,15 +215,16 @@ namespace FileMappingEngine.Lib.Helpers
                 lastColumn);
         }
 
-        public static IXLRange GetDataRangeForColumn(IXLWorksheet worksheet, int headerRowIndex, IXLAddress columnAddress)
+        public static IXLRange GetDataRangeForColumn(IXLWorksheet worksheet, int headerRowIndex, IXLAddress columnAddress, int calcRows)
         {
             int firstDataRow = headerRowIndex + 1;
-            int lastRow = worksheet?.LastRowUsed()?.RowNumber() ?? 0;
+            int lastRowUsed = worksheet?.LastRowUsed()?.RowNumber() ?? 0;
+            int lastRowForRange = lastRowUsed - calcRows;
 
             return worksheet.Range(
                 firstDataRow,
                 columnAddress.ColumnNumber,
-                lastRow,
+                lastRowForRange,
                 columnAddress.ColumnNumber);
         }
         public static int CalculationStartRowIndex(IXLWorksheet worksheet)

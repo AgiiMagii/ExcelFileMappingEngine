@@ -10,6 +10,5 @@ namespace FileMappingEngine.Lib.Models
         public string? ColumnName { get; set; }
         public int RowIndex { get; set; }
         public string? Value { get; set; }
-        public FormulaFunction? FormulaFunction { get; set; }
     }
 }

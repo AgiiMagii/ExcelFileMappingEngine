@@ -1,4 +1,5 @@
 ﻿using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Spreadsheet;
 using FileMappingEngine.Lib.Helpers;
 using FileMappingEngine.Lib.Interfaces;
@@ -141,7 +142,7 @@ namespace FileMappingEngine.Lib.Services
                 ExcelHelper.GetDataRangeForColumn(
                     worksheet,
                     dataState.HeaderRowIndex,
-                    columnAddress);
+                    columnAddress, 0);
 
             foreach (var cell in dataRange.Columns().First().Cells())
             {
@@ -157,7 +158,7 @@ namespace FileMappingEngine.Lib.Services
         {
             var columnAddress = ExcelHelper.GetColumnAddressByHeaderRow(dataState.Workbook!.Worksheet(1), dataState.HeaderRowIndex, columnName);
             var worksheet = dataState.Workbook.Worksheet(1);
-            var columnCells = ExcelHelper.GetDataRangeForColumn(worksheet, dataState.HeaderRowIndex, columnAddress)
+            var columnCells = ExcelHelper.GetDataRangeForColumn(worksheet, dataState.HeaderRowIndex, columnAddress, 0)
                 .Cells();
 
             foreach (var cell in columnCells)
@@ -176,7 +177,7 @@ namespace FileMappingEngine.Lib.Services
         public void ApplyCalculationRowData(DataSession session, int calculationsRowIndex, string columnName, string value, FormulaFunction? formulaFunction)
         {
             int headerRowIndex = session.Data.HeaderRowIndex;
-
+            int calcRows = session.Data.WorkbookCalculationRows?.Count ?? 0;
             
             IXLWorksheet worksheet = session.Data.Workbook!
                 .Worksheet(1);
@@ -190,21 +191,30 @@ namespace FileMappingEngine.Lib.Services
                 ExcelHelper.GetDataRangeForColumn(
                     worksheet,
                     headerRowIndex,
-                    columnAddress);
+                    columnAddress, calcRows);
 
             int targetRow = calculationsRowIndex + session.Data.CalculationStartRowIndex;
 
             if (formulaFunction != null)
             {
-
                 XLFormula xLFormula = FormulaService.ConvertRangeToExcelFormula(dataRange, formulaFunction);
-
                 worksheet.Cell(targetRow, columnAddress?.ColumnNumber ?? 1).FormulaA1 = xLFormula.Value;
             }
             else
             {
                 worksheet.Cell(targetRow, columnAddress?.ColumnNumber ?? 1).Value = value;
                 worksheet.Cell(targetRow, columnAddress?.ColumnNumber ?? 1).Style.NumberFormat.Format = "@";
+            }
+
+            session.Data.WorkbookCalculationRows.Clear();
+
+            for (int i = session.Data.CalculationStartRowIndex; i <= worksheet.LastRowUsed().RowNumber(); i++)
+            {
+                session.Data.WorkbookCalculationRows.Add(
+                    new WorkbookCalculationRow
+                    {
+                        ExcelRowIndex = i
+                    });
             }
         }
     }

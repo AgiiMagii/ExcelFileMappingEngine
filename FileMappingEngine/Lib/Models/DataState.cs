@@ -17,14 +17,13 @@ namespace FileMappingEngine.Lib.Models
         public RawExcelData? RawData { get; set; }
 
         public IXLWorkbook? Workbook { get; set; }
+        public HashSet<WorkbookCalculationRow> WorkbookCalculationRows { get; set; } = new HashSet<WorkbookCalculationRow>();
 
         public DataTable? CurrentData { get; set; }
 
         public List<CalculationRow> CalculationData { get; set; } = new();
 
         public Stack<UndoState?> UndoStateHistory { get; set; } = new Stack<UndoState?>();
-
-        public List<string[]>? IgnoredRows { get; set; }
 
         public FileDefinition? FileDefinition { get; set; }
     }
