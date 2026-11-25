@@ -9,6 +9,7 @@ namespace FileMappingEngine.Lib.Models
     public class DataState
     {
         public int HeaderRowIndex { get; set; } = 1;
+        public int SheetIndex { get; set; } = 1;
         public int CalculationStartRowIndex { get; set; }
         public string? SortedColumn { get; set; }
         public bool? SortAscending { get; set; }
@@ -17,6 +18,7 @@ namespace FileMappingEngine.Lib.Models
         public RawExcelData? RawData { get; set; }
 
         public IXLWorkbook? Workbook { get; set; }
+
         public HashSet<WorkbookCalculationRow> WorkbookCalculationRows { get; set; } = new HashSet<WorkbookCalculationRow>();
 
         public DataTable? CurrentData { get; set; }

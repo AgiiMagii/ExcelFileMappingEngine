@@ -8,6 +8,7 @@ using FileMappingEngine.Lib.Sessions;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.Text;
 using static FileMappingEngine.Lib.Models.Enums;
 
@@ -161,16 +162,39 @@ namespace FileMappingEngine.Lib.Services
             var columnCells = ExcelHelper.GetDataRangeForColumn(worksheet, dataState.HeaderRowIndex, columnAddress, 0)
                 .Cells();
 
+            var inv = CultureInfo.InvariantCulture;
+
             foreach (var cell in columnCells)
             {
+                string raw = cell.GetString();   // ideally pass your original value in instead
+
                 if (dataType == typeof(string))
                 {
                     cell.Style.NumberFormat.Format = "@";
+                    cell.SetValue(raw);                       // stays text, "00123" preserved
                 }
-                else
+                else if (dataType == typeof(int))
                 {
-                    cell.Style.NumberFormat.Format = "General";
+                    if (!int.TryParse(raw, NumberStyles.Integer, inv, out var n))
+                        throw new FormatException($"{cell.Address}: '{raw}' is not an int");
+                    cell.SetValue(n);
+                    cell.Style.NumberFormat.Format = "0";
                 }
+                else if (dataType == typeof(decimal) || dataType == typeof(double))
+                {
+                    if (!decimal.TryParse(raw, NumberStyles.Number, inv, out var d))
+                        throw new FormatException($"{cell.Address}: '{raw}' is not a number");
+                    cell.SetValue(d);
+                    cell.Style.NumberFormat.Format = "0.00";
+                }
+                else if (dataType == typeof(DateTime))
+                {
+                    if (!DateTime.TryParseExact(raw, "yyyy-MM-dd", inv, DateTimeStyles.None, out var dt))
+                        throw new FormatException($"{cell.Address}: '{raw}' is not a yyyy-MM-dd date");
+                    cell.SetValue(dt);
+                    cell.Style.DateFormat.Format = "yyyy-mm-dd";
+                }
+                else throw new NotSupportedException($"Data type '{dataType.Name}' is not supported.");
             }
         }
 

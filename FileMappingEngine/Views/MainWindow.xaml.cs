@@ -48,11 +48,11 @@ namespace FileMappingEngine
             }
         }
 
-        private async Task LoadFileAsync(string fileName, int? headerRowIndex)
+        private async Task LoadFileAsync(string fileName, int? headerRowIndex, int sheetIndex)
         {
             try
             {
-                await appManager.OpenFile(fileName, headerRowIndex);
+                await appManager.OpenFile(fileName, headerRowIndex, sheetIndex);
 
                 if (!appManager.HasFile)
                     return;
@@ -189,6 +189,7 @@ namespace FileMappingEngine
             {
                 fileName = ofd.FileName;
                 LoadCbHeaderRowOverlay();
+                LoadCbSheets();
                 HeaderRowOverlay.Visibility = Visibility.Visible;
             }
         }
@@ -200,11 +201,12 @@ namespace FileMappingEngine
                 return;
 
             int? headerRowIndex = CbHeaderRowOverlay.SelectedValue != null ? (int)CbHeaderRowOverlay.SelectedValue : null;
+            int sheetIndex = CbSheets.SelectedValue != null ? (int)CbSheets.SelectedValue : 1;
 
             try
             {
 
-                await LoadFileAsync(fileName, headerRowIndex);
+                await LoadFileAsync(fileName, headerRowIndex, sheetIndex);
 
                 txtFilePath.Text = appManager?.Session?.File?.FileName;
             }
@@ -213,6 +215,7 @@ namespace FileMappingEngine
                 MessageBox.Show(string.Format(UiMessages.Fail_change, UiTerms.HeaderRow), UiTerms.Error, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        
         private void LoadCbHeaderRowOverlay()
         {
             CbHeaderRowOverlay.Items.Clear();
@@ -221,13 +224,23 @@ namespace FileMappingEngine
                 CbHeaderRowOverlay.Items.Add(i);
             }
         }
+
+        private void LoadCbSheets()
+        {
+            CbSheets.Items.Clear();
+            for (int i = 1; i <= 10; i++)
+            {
+                CbSheets.Items.Add(i);
+            }
+        }
         private async void SkipHeaderRow_Click(object sender, RoutedEventArgs e)
         {
             if (fileName == null)
                 return;
 
             HeaderRowOverlay.Visibility = Visibility.Collapsed;
-            await LoadFileAsync(fileName, null);
+            int sheetIndex = CbSheets.SelectedValue != null ? (int)CbSheets.SelectedValue : 1;
+            await LoadFileAsync(fileName, null, sheetIndex);
         }
 
         private void ChangeUIStateForMappingApplied()

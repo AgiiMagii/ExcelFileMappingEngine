@@ -44,9 +44,9 @@ namespace FileMappingEngine.Lib
             _workbookActionExecutor = workbookActionExecutor ?? throw new ArgumentNullException(nameof(workbookActionExecutor));
         }
 
-        public async Task OpenFile(string path, int? headerRowIndex)
+        public async Task OpenFile(string path, int? headerRowIndex, int sheetIndex)
         {
-            var opened = await _fileService.OpenFile(path, headerRowIndex);
+            var opened = await _fileService.OpenFile(path, headerRowIndex, sheetIndex);
 
             if (opened == null)
                 throw new InvalidOperationException("Failed to open the file.");

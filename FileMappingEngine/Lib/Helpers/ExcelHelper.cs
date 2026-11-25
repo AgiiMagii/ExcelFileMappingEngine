@@ -16,7 +16,7 @@ namespace FileMappingEngine.Lib.Helpers
 {
     public static class ExcelHelper
     {
-        public static RawExcelData LoadRawData(string filePath)
+        public static RawExcelData LoadRawData(string filePath, int sheetIndex)
         {
             RawExcelData rawExcelData = new RawExcelData();
             DataTable rawData = new();
@@ -29,7 +29,7 @@ namespace FileMappingEngine.Lib.Helpers
             using var ms = new MemoryStream(originalBytes);
             using XLWorkbook workbook = new(ms);
 
-            IXLWorksheet worksheet = workbook.Worksheet(1);
+            IXLWorksheet worksheet = workbook.Worksheet(sheetIndex);
 
             if (worksheet.CellsUsed().Count() == 0)
                 throw new ArgumentException("The Excel file is empty.");
@@ -117,7 +117,7 @@ namespace FileMappingEngine.Lib.Helpers
                         c + 1,
                         usedNames);
 
-                workbook?.Worksheet(1)?.Cell(headerIndex + 1, c + 1).SetValue(colName);
+                workbook?.Worksheet(dataState.SheetIndex)?.Cell(headerIndex + 1, c + 1).SetValue(colName);
 
 
                 dataTable.Columns.Add(colName, dataState.RawData.Data.Columns[c].DataType);

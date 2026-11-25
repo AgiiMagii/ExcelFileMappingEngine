@@ -22,9 +22,9 @@ namespace FileMappingEngine.Lib.Services
         {
             this.fileRepository = fileRepository;
         }
-        public async Task<DataSession> OpenFile(string path, int? headerRowIndex)
+        public async Task<DataSession> OpenFile(string path, int? headerRowIndex, int sheetIndex)
         {
-            RawExcelData rawData = ExcelHelper.LoadRawData(path);
+            RawExcelData rawData = ExcelHelper.LoadRawData(path, sheetIndex);
 
             if (rawData == null || rawData.Data == null)
                 throw new InvalidOperationException("Failed to load data from the specified file.");
@@ -39,6 +39,7 @@ namespace FileMappingEngine.Lib.Services
             {
                 RawData = rawData,
                 HeaderRowIndex = headerRowIndex ?? 1,
+                SheetIndex = sheetIndex
             };
 
             ExcelHelper.BuildCurrentData(dataState);
