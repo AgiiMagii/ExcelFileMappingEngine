@@ -188,8 +188,9 @@ namespace FileMappingEngine
             if (ofd.ShowDialog() == true)
             {
                 fileName = ofd.FileName;
+                await appManager.LoadBytesAsync(fileName);
                 LoadCbHeaderRowOverlay();
-                LoadCbSheets();
+                await LoadCbSheets();
                 HeaderRowOverlay.Visibility = Visibility.Visible;
             }
         }
@@ -225,13 +226,15 @@ namespace FileMappingEngine
             }
         }
 
-        private void LoadCbSheets()
+        private async Task LoadCbSheets()
         {
             CbSheets.Items.Clear();
-            for (int i = 1; i <= 10; i++)
-            {
-                CbSheets.Items.Add(i);
-            }
+            List<SheetReference> sheetReferences = await appManager.LoadSheetNamesAsync();
+            CbSheets.ItemsSource = sheetReferences;
+
+            CbSheets.SelectedValuePath = "SheetIndex";
+            CbSheets.DisplayMemberPath = "SheetName";
+
         }
         private async void SkipHeaderRow_Click(object sender, RoutedEventArgs e)
         {

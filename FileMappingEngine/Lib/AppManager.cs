@@ -20,6 +20,7 @@ namespace FileMappingEngine.Lib
         private readonly ISessionStore _sessionStore;
         private const string LocalOwnerId = "local";
         private Guid? _currentSessionId;
+        private readonly DataState _pendingState = new();
         private DataSession? CurrentSession =>
             _currentSessionId == null ? null : _sessionStore.Get(_currentSessionId.Value, LocalOwnerId);
 
@@ -46,7 +47,7 @@ namespace FileMappingEngine.Lib
 
         public async Task OpenFile(string path, int? headerRowIndex, int sheetIndex)
         {
-            var opened = await _fileService.OpenFile(path, headerRowIndex, sheetIndex);
+            var opened = await _fileService.OpenFile(_pendingState.RawData, path, headerRowIndex, sheetIndex);
 
             if (opened == null)
                 throw new InvalidOperationException("Failed to open the file.");
@@ -66,6 +67,16 @@ namespace FileMappingEngine.Lib
             {
                 await _fileService.FindMatchingFileDefinition(session.Data);
             }
+        }
+
+        public async Task LoadBytesAsync(string fileName)
+        {
+            await ExcelHelper.LoadOriginalBytesAsync(fileName, _pendingState);
+        }
+
+        public async Task<List<SheetReference>> LoadSheetNamesAsync()
+        {
+            return await ExcelHelper.LoadSheetNamesAsync(_pendingState.RawData?.OriginalBytes ?? throw new InvalidOperationException("File bytes not loaded."));
         }
 
         public async Task UpdateHeaderRow(int newHeaderRow)

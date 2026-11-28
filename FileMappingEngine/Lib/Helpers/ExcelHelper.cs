@@ -16,22 +16,47 @@ namespace FileMappingEngine.Lib.Helpers
 {
     public static class ExcelHelper
     {
-        public static RawExcelData LoadRawData(string filePath, int sheetIndex)
+        public static async Task<RawExcelData> LoadOriginalBytesAsync(string filePath, DataState dataState)
         {
-            RawExcelData rawExcelData = new RawExcelData();
-            DataTable rawData = new();
-            List<ColumnReference> columns = [];
-            List<CellReference> cellMetadata = [];
+            byte[] originalBytes = await File.ReadAllBytesAsync(filePath);
+            DataState state = new DataState
+            {
+                RawData = new RawExcelData
+                {
+                    OriginalBytes = originalBytes
+                }
+            };
+            dataState.RawData = state.RawData;
+            return state.RawData;
+        }
 
-            byte[] originalBytes = File.ReadAllBytes(filePath);
-            rawExcelData.OriginalBytes = originalBytes;
-
+        public static async Task<List<SheetReference>> LoadSheetNamesAsync(byte[] originalBytes)
+        {
             using var ms = new MemoryStream(originalBytes);
             using XLWorkbook workbook = new(ms);
 
-            IXLWorksheet worksheet = workbook.Worksheet(sheetIndex);
+            List<SheetReference> sheetReferences = new();
+            foreach (var worksheet in workbook.Worksheets)
+            {
+                sheetReferences.Add(new SheetReference
+                {
+                    SheetIndex = worksheet.Position,
+                    SheetName = worksheet.Name
+                });
+            }
+            return sheetReferences;
+        }
+        public static RawExcelData LoadRawData(RawExcelData rawExcelData, int sheetIndex)
+        {
+            DataTable rawData = new();
+            List<ColumnReference> columns = new();
+            List<CellReference> cellMetadata = new();
 
-            if (worksheet.CellsUsed().Count() == 0)
+            using var ms = new MemoryStream(rawExcelData.OriginalBytes);
+            using XLWorkbook workbook = new(ms);
+
+            IXLWorksheet worksheet = workbook.Worksheet(sheetIndex);
+                        if (worksheet.CellsUsed().Count() == 0)
                 throw new ArgumentException("The Excel file is empty.");
 
             int maxCol = worksheet.LastCellUsed().Address.ColumnNumber;
